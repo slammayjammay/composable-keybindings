@@ -9,25 +9,31 @@ class Interpreter {
 		this.end = this.end.bind(this);
 
 		this.replaced = new Map();
+		this.added = new Map();
 
 		this.reset();
 	}
 
 	reset(keepState) {
-		for (const [key, val] of this.replaced.entries()) {
-			this.map.set(key, val);
-		}
+		this.undoCd();
+
 		this.replaced.clear();
+		this.added.clear();
 
 		this.store = this.filter = null;
 		this._resolve = this._reject = null;
 		this._isReading = this._isInterpreting = false;
-		this._interpreter = null;
+		this._keyReader = this._interpreter = null;
 
 		if (!keepState) {
 			this._keysEntered = [];
 			this._count = '';
 		}
+	}
+
+	undoCd() {
+		this.replaced.forEach((val, key) => this.map.set(key, val));
+		this.added.forEach((_, key) => this.map.delete(key));
 	}
 
 	begin(store, filter) {
@@ -84,7 +90,7 @@ class Interpreter {
 			readKey = this._keysEntered.pop();
 
 			if (action.keybindings.has(readKey)) {
-				this.replaceMap(action);
+				this.cdIntoAction(action);
 				this.handleKey(readKey);
 				return;
 			}
@@ -102,27 +108,42 @@ class Interpreter {
 	}
 
 	followInstructions(action) {
-		this.replaceMap(action);
+		this.cdIntoAction(action);
 		const { read, interpret } = this;
 		return action.behavior({ read, interpret }, this.store);
 	}
 
-	replaceMap(action) {
-		const replace = (action, prop) => {
-			if (action[prop] instanceof Map) {
-				for (const [key, val] of action[prop].entries()) {
-					if (this.map.has(key)) {
-						this.replaced.set(key, this.map.get(key));
-					}
+	cdIntoAction(action) {
+		const props = ['interprets', 'keybindings'];
+		const maps = props.map(p => action[p]).filter(m => m instanceof Map);
 
-					this.map.set(key, val);
-				}
-			}
-		};
+		[this.replaced, this.added] = this.getMapDiff(this.map, ...maps);
 
-		['interprets', 'keybindings'].forEach(prop => replace(action, prop));
+		maps.forEach(map => {
+			map.forEach((val, key) => this.map.set(key, val));
+		});
 	}
 
+	getMapDiff(original, ...maps) {
+		const replaced = new Map();
+		const added = new Map();
+
+		maps.forEach(map => {
+			for (const [key, val] of map.entries()) {
+				if (original.has(key)) {
+					replaced.set(key, original.get(key));
+				} else {
+					added.set(key, val);
+				}
+			}
+		});
+
+		return [replaced, added];
+	}
+
+	/**
+	 * @param {number} count - number of keys to read.
+	 */
 	async read(count) {
 		this._isReading = true;
 		this._keyReader = new KeyReader();
@@ -167,7 +188,7 @@ class Interpreter {
 		this.map = this.store = this.filter = null;
 		this._resolve = this._reject = null;
 		this._isReading = this._isInterpreting = false;
-		this._interpreter = null;
+		this._keyReader = this._interpreter = null;
 		this._keysEntered = this._count = null;
 	}
 }

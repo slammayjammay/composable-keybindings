@@ -3,13 +3,14 @@
   "version": "1.0.0",
   "description": "Create composable keybindings in Node or the browser.",
   "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha test/index.js",
+    "playground": "node test/playground.js"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "mocha": "^7.1.0"
+  }
 }

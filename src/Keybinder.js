@@ -37,7 +37,6 @@ class Keybinder extends EventEmitter {
 
 	constructor() {
 		super();
-		this._charsEntered = [];
 
 		this.map = new Map();
 
@@ -86,10 +85,6 @@ class Keybinder extends EventEmitter {
 		this.reset();
 	}
 
-	_reset() {
-		this._charsEntered = [];
-	}
-
 	formatCharKey(char, key) {
 		let formatted;
 
@@ -123,24 +118,37 @@ class Keybinder extends EventEmitter {
 
 	handleCharKey(char, key) {
 		const formatted = this.formatCharKey(char, key);
-		this.handleKey(formatted);
+		return this.handleKey(formatted);
 	}
 
 	/**
 	 * @return {object|boolean} - If a keybinding is found, returns a keybinding
-	 * object. If no keybinding is found, or if additional chars are needed to
+	 * object. If no keybinding is found, or if additional keys are needed to
 	 * complete a keybinding, returns null.
 	 */
 	handleKey(formatted) {
-		this.interpreter.handleKey(formatted);
+		return this.interpreter.handleKey(formatted);
+	}
+
+	async handleCharKeys(array) {
+		for (let i = 0, l = array.length; i < l; i++) {
+			this.handleCharKey(array[i]);
+			await new Promise(process.nextTick);
+		}
+	}
+
+	// TODO
+	async handleKeys(array) {
+		for (let i = 0, l = array.length; i < l; i++) {
+			this.handleKey(array[i]);
+			await new Promise(process.nextTick);
+		}
 	}
 
 	destroy() {
 		this.removeAllListeners();
 		this.map.clear();
 		this.map = null;
-		this._charsEntered = null;
-		this._currentKeyString = this._currentKeyVal = this._readResults = {};
 	}
 }
 
