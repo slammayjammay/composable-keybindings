@@ -1,9 +1,26 @@
 const KeyReader = require('./KeyReader');
+const { promiseable } = require('./utils');
+
+const STATUS = {
+	START: 0,
+	// FOLLOWING_INSTRUCTIONS: 0.5,
+	IS_READING: 1,
+	IS_INTERPRETING: 2,
+	NEEDS_KEY: 3,
+	DONE: 4
+};
 
 class Interpreter {
-	constructor(map) {
-		this.map = map;
+	static get STATUS() {
+		return STATUS;
+	}
 
+	constructor(map, store, filter) {
+		this.map = map;
+		this.store = store;
+		this.filter = filter;
+
+		this.followInstructions = this.followInstructions.bind(this);
 		this.read = this.read.bind(this);
 		this.interpret = this.interpret.bind(this);
 		this.end = this.end.bind(this);
@@ -20,8 +37,6 @@ class Interpreter {
 		this.replaced.clear();
 		this.added.clear();
 
-		this.store = this.filter = null;
-		this._resolve = this._reject = null;
 		this._isReading = this._isInterpreting = false;
 		this._keyReader = this._interpreter = null;
 
@@ -36,31 +51,44 @@ class Interpreter {
 		this.added.forEach((_, key) => this.map.delete(key));
 	}
 
-	begin(store, filter) {
-		return new Promise((resolve, reject) => {
-			this.store = store;
-			this.filter = filter;
-			this._resolve = resolve;
-			this._reject = reject;
-		}).then(keybinding => {
-			return keybinding.action.supplemental ?
-				this.begin(store, filter) : Promise.resolve(keybinding);
-		});
-	}
+	// begin(store, filter) {
+	// 	return new Promise((resolve, reject) => {
+	// 		this.store = store;
+	// 		this.filter = filter;
+	// 		this._resolve = resolve;
+	// 		this._reject = reject;
+	// 	}).then(keybinding => {
+	// 		return keybinding.action.supplemental ?
+	// 			this.begin(store, filter) : Promise.resolve(keybinding);
+	// 	});
+	// }
 
 	handleKey(key) {
+		if (this.status === STATUS.NEEDS_KEY) {
+			if (this.foundAction.keybindings.has(key)) {
+				this.cdIntoAction(this.foundAction);
+			} else {
+				if (typeof action.behavior === 'function') {
+					promiseable(this.followInstructions, [action], () => {
+						this.end(true, this._getKeybindingObject(action);
+					});
+
+					readKey && this.handleKey(readKey);
+				}
+		}
+
 		this._keysEntered.push(key);
 
-		if (this._isReading) {
-			return this._keyReader.handleKey(key);
-		} else if (this._isInterpreting) {
-			return this._interpreter.handleKey(key);
-		}
+		// if (this._isReading) {
+		// 	return this._keyReader.handleKey(key);
+		// } else if (this._isInterpreting) {
+		// 	return this._interpreter.handleKey(key);
+		// }
 
 		this.encounter(key);
 	}
 
-	async encounter(key) {
+	encounter(key) {
 		const isNumber = /^\d$/.test(key);
 
 		if (isNumber) {
@@ -73,33 +101,28 @@ class Interpreter {
 		}
 
 		if (!this.map.has(key)) {
-			return this.end();
+			this.reset();
+			this.status = STATUS.START;
+			return;
 		}
 
 		const action = this.map.get(key);
 
 		if (this.filter && !this.filter(action)) {
-			this.end();
+			this.reset();
+			this.status = STATUS.INTERPRET_FILTERED;
 			return;
 		}
 
-		let readKey;
+		// let readKey;
 
 		if (action.keybindings instanceof Map && action.keybindings.size > 0) {
-			await this.read(1);
-			readKey = this._keysEntered.pop();
-
-			if (action.keybindings.has(readKey)) {
-				this.cdIntoAction(action);
-				this.handleKey(readKey);
-				return;
-			}
+			this.status = STATUS.NEEDS_KEY;
+			this._foundAction = action;
 		}
 
 		if (typeof action.behavior === 'function') {
-			this.followInstructions(action)
-				.then(() => this.end(true, this._getKeybindingObject(action)))
-				.catch(() => this.end(false, this._getKeybindingObject(action)));
+			// this.followInstructions(action).then(() => this.end(true, this._getKeybindingObject(action)));
 
 			readKey && this.handleKey(readKey);
 		} else {
@@ -141,33 +164,42 @@ class Interpreter {
 		return [replaced, added];
 	}
 
-	/**
-	 * @param {number} count - number of keys to read.
-	 */
-	async read(count) {
+	read(count, cb) {
 		this._isReading = true;
 		this._keyReader = new KeyReader();
 
-		const keys = await this._keyReader.begin(count);
+		const fn = this._keyReader.read;
+		const usePromise = typeof cb !== 'function';
 
-		this._isReading = false;
-		this._keyReader = null;
+		const doneCb = (...args) => {
+			this._isReading = false;
+			this._keyReader = null;
+			return usePromise ? Promise.resolve(...args) : cb(...args);
+		};
 
-		return keys;
+		if (usePromise) {
+			return this._keyReader.read(count).then(doneCb);
+		} else {
+			return this._keyReader.read(count, doneCb);
+		}
+
+		return promiseable(this._keyReader.read, [count], doneCb, usePromise);
 	}
 
 	/**
 	 * @param {function} [filter] - A function to filter unwanted keybindings.
 	 */
-	async interpret(filter) {
+	interpret(filter, cb) {
 		this._isInterpreting = true;
 		this._interpreter = new Interpreter(this.map);
 
-		return this._interpreter.begin(this.store, ...arguments).then((...args) => {
+		const doneCb = (...args) => {
 			this._isInterpreting = false;
 			this._interpreter = null;
-			return Promise.resolve(...args);
-		});
+			return cb(...args);
+		};
+
+		promiseable(this._interpreter.begin, [this.store, this.filter], doneCb);
 	}
 
 	end(success = false, ...args) {

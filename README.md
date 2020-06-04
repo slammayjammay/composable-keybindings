@@ -234,13 +234,18 @@ vats.on('keybinding', console.log);
 <summary>Supplemental</summary>
 
 ```js
+const SyncPromise = require('synchronous-promise');
 vats.setKeybinding('t', { name: 'test' });
 
 vats.setKeybinding('"', {
   name: 'register',
   supplemental: true,
-  behavior: ({ read }, store) => {
-    return read(1).then(keys => store.register = keys[0]);
+  behavior: ({ read }, store, done) => {
+    // store.register = (await read(1))[0];
+    read(1, {
+      keys => store.register = keys[0];
+      done();
+    });
   }
 });
 

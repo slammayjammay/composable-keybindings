@@ -130,19 +130,24 @@ class Keybinder extends EventEmitter {
 		return this.interpreter.handleKey(formatted);
 	}
 
-	async handleCharKeys(array) {
-		for (let i = 0, l = array.length; i < l; i++) {
-			this.handleCharKey(array[i]);
-			await new Promise(process.nextTick);
-		}
-	}
+	handleKeys(array, options = {}) {
+		const interpreters = [];
+		let { interpreter } = this;
 
-	// TODO
-	async handleKeys(array) {
-		for (let i = 0, l = array.length; i < l; i++) {
-			this.handleKey(array[i]);
-			await new Promise(process.nextTick);
+		while (interpreter) {
+			interpreters.unshift(interpreter);
+			interpreter = interpreter.interpreter;
 		}
+
+		interpreter = new Interpreter(this.map);
+
+		interpreters.forEach(i => i.undoCd());
+		array.forEach(key => {
+			const status = interpreter.handleKey(key);
+		});
+		interpreters.reverse().forEach(i => i.modifyMap());
+
+		return intepreter.end();
 	}
 
 	destroy() {

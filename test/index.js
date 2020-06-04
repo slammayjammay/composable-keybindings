@@ -17,7 +17,9 @@ describe('Keybinder', () => {
 		});
 
 		it.skip('does not fire when a key is not recognized', async () => {
-			const promise = keybinder.handleKeys(['[']).then(() => {
+			const thing = keybinder.handleKeys(['[']);
+
+			keybinder.handleKeys(['[']).then(() => {
 				throw new Error();
 			});
 
