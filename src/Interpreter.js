@@ -1,227 +1,228 @@
+const Keybinding = require('./Keybinding');
 const KeyReader = require('./KeyReader');
-const { promiseable } = require('./utils');
+const getMapDiff = require('./utils/get-map-diff');
+
+const DEFAULTS = {
+	getKeybinding: (key, map) => map.get(key),
+	isKeyNumber: key => /\d/.test(key),
+	isKeyEscape: key => key === 'escape'
+
+	// keyToString: key => key
+};
 
 const STATUS = {
-	START: 0,
-	// FOLLOWING_INSTRUCTIONS: 0.5,
-	IS_READING: 1,
-	IS_INTERPRETING: 2,
-	NEEDS_KEY: 3,
-	DONE: 4
+	WAITING: 1,
+	IS_READING: 2,
+	IS_INTERPRETING: 3,
+	NEEDS_KEY: 4,
+	DONE: 5
 };
 
 class Interpreter {
-	static get STATUS() {
-		return STATUS;
-	}
+	static get STATUS() { return STATUS; }
 
-	constructor(map, store, filter) {
+	constructor(map, doneCb, options = {}) {
 		this.map = map;
-		this.store = store;
-		this.filter = filter;
+		this.doneCb = doneCb;
+		this.options = { ...DEFAULTS, ...options };
 
-		this.followInstructions = this.followInstructions.bind(this);
 		this.read = this.read.bind(this);
 		this.interpret = this.interpret.bind(this);
-		this.end = this.end.bind(this);
+		this.done = this.done.bind(this);
 
-		this.replaced = new Map();
-		this.added = new Map();
+		this.kb = new Keybinding({ store: this.options.store || {} });
 
-		this.reset();
+		this.cds = [{ action: null }];
+		this.keyReader = this.interpreter = null;
+
+		this.status = this.STATUS.WAITING;
 	}
 
-	reset(keepState) {
-		this.undoCd();
-
-		this.replaced.clear();
-		this.added.clear();
-
-		this._isReading = this._isInterpreting = false;
-		this._keyReader = this._interpreter = null;
-
-		if (!keepState) {
-			this._keysEntered = [];
-			this._count = '';
-		}
+	get STATUS() {
+		return this.constructor.STATUS;
 	}
 
-	undoCd() {
-		this.replaced.forEach((val, key) => this.map.set(key, val));
-		this.added.forEach((_, key) => this.map.delete(key));
+	reset() {
+		this.cdToRoot();
+		this.status = this.STATUS.WAITING;
+		this.kb = new Keybinding();
 	}
-
-	// begin(store, filter) {
-	// 	return new Promise((resolve, reject) => {
-	// 		this.store = store;
-	// 		this.filter = filter;
-	// 		this._resolve = resolve;
-	// 		this._reject = reject;
-	// 	}).then(keybinding => {
-	// 		return keybinding.action.supplemental ?
-	// 			this.begin(store, filter) : Promise.resolve(keybinding);
-	// 	});
-	// }
 
 	handleKey(key) {
-		if (this.status === STATUS.NEEDS_KEY) {
-			if (this.foundAction.keybindings.has(key)) {
-				this.cdIntoAction(this.foundAction);
-			} else {
-				if (typeof action.behavior === 'function') {
-					promiseable(this.followInstructions, [action], () => {
-						this.end(true, this._getKeybindingObject(action);
-					});
-
-					readKey && this.handleKey(readKey);
-				}
+		if (this.options.isKeyEscape(key)) {
+			return this.onDone('cancel');
 		}
 
-		this._keysEntered.push(key);
+		if (this.status === this.STATUS.NEEDS_KEY) {
+			return this.onNeededKey(key);
+		}
 
-		// if (this._isReading) {
-		// 	return this._keyReader.handleKey(key);
-		// } else if (this._isInterpreting) {
-		// 	return this._interpreter.handleKey(key);
-		// }
+		this.kb.keys.push(key);
 
-		this.encounter(key);
+		if (this.status === this.STATUS.WAITING) {
+			this.onWaiting(key);
+		} else if (this.status === this.STATUS.IS_READING) {
+			this.keyReader.handleKey(key);
+		} else if (this.status === this.STATUS.IS_INTERPRETING) {
+			this.interpreter.handleKey(key);
+		}
 	}
 
-	encounter(key) {
-		const isNumber = /^\d$/.test(key);
+	onWaiting(key) {
+		const action = this.options.getKeybinding(key, this.map);
 
-		if (isNumber) {
-			const numIsKeybinding = isNumber && this.map.has(key) && this._keysEntered.length === 1;
-
-			if (!numIsKeybinding) {
-				this._count += key;
-				return;
-			}
-		}
-
-		if (!this.map.has(key)) {
-			this.reset();
-			this.status = STATUS.START;
-			return;
-		}
-
-		const action = this.map.get(key);
-
-		if (this.filter && !this.filter(action)) {
-			this.reset();
-			this.status = STATUS.INTERPRET_FILTERED;
-			return;
-		}
-
-		// let readKey;
-
-		if (action.keybindings instanceof Map && action.keybindings.size > 0) {
-			this.status = STATUS.NEEDS_KEY;
-			this._foundAction = action;
-		}
-
-		if (typeof action.behavior === 'function') {
-			// this.followInstructions(action).then(() => this.end(true, this._getKeybindingObject(action)));
-
-			readKey && this.handleKey(readKey);
+		if (this.options.isKeyNumber(key) && !(this.kb.countChars.length === 0 && action)) {
+			this.onNumber(key);
+		} else if (!action) {
+			this.onUnrecognized(key);
+		} else if (this.options.filter && this.options.filter(action)) {
+			this.onFiltered(action);
+		} else if (action.keybindings instanceof Map && typeof action.behavior === 'function') {
+			this.onNeedsKey(action);
+		} else if (action.keybindings instanceof Map) {
+			this.onKeybindingMap(action);
+		} else if (typeof action.behavior === 'function') {
+			this.onBehavior(action);
 		} else {
-			this.end(true, this._getKeybindingObject(action));
+			this.onDone('keybinding', action);
 		}
 	}
 
-	followInstructions(action) {
+	onNumber(key) {
+		this.kb.countChars.push(key);
+	}
+
+	onUnrecognized(key) {
+		this.onDone('unrecognized', key);
+	}
+
+	onFiltered(action) {
+		this.onDone('filtered', action);
+	}
+
+	onNeedsKey(action) {
+		this.status = this.STATUS.NEEDS_KEY;
 		this.cdIntoAction(action);
-		const { read, interpret } = this;
-		return action.behavior({ read, interpret }, this.store);
 	}
 
-	cdIntoAction(action) {
-		const props = ['interprets', 'keybindings'];
-		const maps = props.map(p => action[p]).filter(m => m instanceof Map);
+	onNeededKey(key) {
+		const action = this.getCurrentAction();
 
-		[this.replaced, this.added] = this.getMapDiff(this.map, ...maps);
+		if (action.keybindings instanceof Map && action.keybindings.has(key)) {
+			this.onKeybindingMap(action);
+		} else if (typeof action.behavior === 'function') {
+			this.onBehavior(action);
+		}
 
-		maps.forEach(map => {
-			map.forEach((val, key) => this.map.set(key, val));
-		});
+		this.handleKey(key);
 	}
 
-	getMapDiff(original, ...maps) {
-		const replaced = new Map();
-		const added = new Map();
+	onKeybindingMap(action) {
+		this.status = this.STATUS.WAITING;
+		this.cdIntoAction(action);
+	}
 
-		maps.forEach(map => {
-			for (const [key, val] of map.entries()) {
-				if (original.has(key)) {
-					replaced.set(key, original.get(key));
-				} else {
-					added.set(key, val);
-				}
-			}
-		});
-
-		return [replaced, added];
+	onBehavior(action) {
+		this.status = this.STATUS.WAITING;
+		this.cdIntoAction(action);
+		const { read, interpret, done } = this;
+		action.behavior({ read, interpret, done }, this.kb);
 	}
 
 	read(count, cb) {
-		this._isReading = true;
-		this._keyReader = new KeyReader();
+		this.status = this.STATUS.IS_READING;
+		this.keyReader = new KeyReader(count, keys => {
+			this.status = this.STATUS.WAITING;
+			this.keyReader.destroy();
+			this.keyReader = null;
+			cb(keys);
+		});
+	}
 
-		const fn = this._keyReader.read;
-		const usePromise = typeof cb !== 'function';
+	interpret(cb, filter) {
+		this.status = this.STATUS.IS_INTERPRETING;
 
 		const doneCb = (...args) => {
-			this._isReading = false;
-			this._keyReader = null;
-			return usePromise ? Promise.resolve(...args) : cb(...args);
+			this.status = this.STATUS.WAITING;
+			this.interpreter.cdToRoot();
+			this.interpreter.destroy();
+			this.interpreter = null;
+			cb(...args);
 		};
 
-		if (usePromise) {
-			return this._keyReader.read(count).then(doneCb);
-		} else {
-			return this._keyReader.read(count, doneCb);
+		const { store } = this.kb;
+		this.interpreter = new Interpreter(this.map, doneCb, { ...this.options, store, filter });
+	}
+
+	done(type = 'keybinding', data = this.getCurrentAction(), status) {
+		status = status || {
+			resume: this.STATUS.WAITING
+		}[type];
+
+		this.onDone(type, data, status);
+	}
+
+	// types
+	// - keybinding
+	// - unrecognized
+	// - cancel
+	onDone(type, data, status = this.STATUS.DONE) {
+		this.status = status;
+
+		if (type === 'keybinding') {
+			this.kb.action = data;
+			data = this.kb;
 		}
 
-		return promiseable(this._keyReader.read, [count], doneCb, usePromise);
+		if (this.status === this.STATUS.DONE) {
+			this.doneCb(type, data, this.status);
+			this.reset();
+		}
 	}
 
-	/**
-	 * @param {function} [filter] - A function to filter unwanted keybindings.
-	 */
-	interpret(filter, cb) {
-		this._isInterpreting = true;
-		this._interpreter = new Interpreter(this.map);
+	cdIntoAction(action) {
+		if (this.getCurrentAction() === action) {
+			return;
+		}
 
-		const doneCb = (...args) => {
-			this._isInterpreting = false;
-			this._interpreter = null;
-			return cb(...args);
-		};
+		const props = ['interprets', 'keybindings'];
+		const maps = props.map(p => action[p]).filter(m => m instanceof Map);
 
-		promiseable(this._interpreter.begin, [this.store, this.filter], doneCb);
+		const [replaced, added] = getMapDiff(this.map, ...maps);
+
+		maps.forEach(map => map.forEach((val, key) => this.map.set(key, val)));
+
+		this.cds.push({ action, replaced, added });
 	}
 
-	end(success = false, ...args) {
-		(success ? this._resolve : this._reject)(...args);
-		this.reset(success);
+	getCurrentAction() {
+		return this.cds[this.cds.length - 1].action;
 	}
 
-	_getKeybindingObject(action) {
-		return {
-			action,
-			count: this._count === '' ? 1 : parseInt(this._count),
-			keysEntered: this._keysEntered,
-			store: this.store
-		};
+	cdUp() {
+		const { action, replaced, added } = this.cds.pop();
+
+		replaced.forEach((val, key) => this.map.set(key, val));
+		added.forEach((_, key) => this.map.delete(key));
+
+		replaced.clear();
+		added.clear();
+	}
+
+	cdToRoot() {
+		while (this.cds.length > 1) {
+			this.cdUp();
+		}
 	}
 
 	destroy() {
-		this.map = this.store = this.filter = null;
-		this._resolve = this._reject = null;
-		this._isReading = this._isInterpreting = false;
-		this._keyReader = this._interpreter = null;
-		this._keysEntered = this._count = null;
+		this.keyReader && this.keyReader.destroy();
+		this.interpreter && this.interpreter.cdToRoot();
+		this.interpreter && this.interpreter.destroy();
+
+		this.map = this.store = this.doneCb = this.filter = null;
+		this.kb = null;
+		this.keyReader = this.interpreter = null;
 	}
 }
 

@@ -1,113 +1,156 @@
 const assert = require('assert');
 const Keybinder = require('../src');
-const seeds = require('./seeds');
+const Interpreter = require('../src/Interpreter');
+const keybindings = require('./keybindings');
 
-const keybinder = new Keybinder();
-keybinder.setKeybindings(seeds);
+const keybinder = new Keybinder(keybindings);
 
 describe('Keybinder', () => {
-	describe('events', () => {
-		it('fires events with a keybinding object', async () => {
-			keybinder.handleKeys(['j']);
-			const kb = await new Promise(r => keybinder.once('keybinding', r));
-			assert.ok(kb.action);
-			assert.ok(kb.count);
-			assert.ok(kb.store);
-			assert.ok(kb.keysEntered);
+	describe('cb types', () => {
+		it('cb calls with type "keybinding"', (done) => {
+			keybinder.handleKeys(['j'], (type, kb, status) => {
+				assert.equal(type, 'keybinding');
+				assert.ok(kb.action);
+				assert.ok(kb.count);
+				assert.ok(kb.store);
+				assert.ok(kb.keys);
+				assert.equal(status, Interpreter.STATUS.DONE);
+				done();
+			});
 		});
 
-		it.skip('does not fire when a key is not recognized', async () => {
-			const thing = keybinder.handleKeys(['[']);
-
-			keybinder.handleKeys(['[']).then(() => {
-				throw new Error();
-			});
-
-			// const kb = await new Promise(r => keybinder.once('keybinding', r));
-
-			return new Promise((res, rej) => {
-				throw new Error();
+		it('cb calls with type "unrecognized"', (done) => {
+			keybinder.handleKeys(['['], (type, kb, status) => {
+				assert.equal(type, 'unrecognized');
+				assert.equal(status, Interpreter.STATUS.DONE);
+				done();
 			});
 		});
 	});
 
 	describe('recognition', () => {
-		it('one-to-one keybindings', () => {
-			keybinder.handleKeys(['t']);
-			return new Promise(r => keybinder.once('keybinding', r)).then((kb) => {
+		it('one-to-one keybindings', (done) => {
+			keybinder.handleKeys(['t'], (type, kb, status) => {
+				assert.equal(type, 'keybinding');
 				assert.equal(kb.action.name, 'test');
+				assert.equal(status, Interpreter.STATUS.DONE);
+				done();
 			});
 		});
 
-		it('nested keybindings', async () => {
-			keybinder.handleKeys(['y', 'y']);
-			const kb = await new Promise(r => keybinder.once('keybinding', r));
-			assert.equal(kb.action.name, 'yank-line');
+		it('nested keybindings', (done) => {
+			keybinder.handleKeys(['y', 'y'], (type, kb, status) => {
+				assert.equal(type, 'keybinding');
+				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(kb.action.name, 'yank-line');
+				done();
+			});
 		});
 
-		it('reading keybindings', async () => {
-			keybinder.handleKeys(['f', 'a']);
-			const kb = await new Promise(r => keybinder.once('keybinding', r));
-			assert.equal(kb.action.name, 'find');
-			assert.equal(kb.store.find, 'a');
+		it('reading keybindings', (done) => {
+			keybinder.handleKeys(['f', 'a'], (type, kb, status) => {
+				assert.equal(type, 'keybinding');
+				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(kb.action.name, 'find');
+				assert.equal(kb.store.find, 'a');
+				done();
+			});
 		});
 
-		it('interpreting keybindings', async () => {
-			keybinder.handleKeys(['9', 'd', '3', '4', 'f', 'a']);
-			const kb = await new Promise(r => keybinder.once('keybinding', r));
-			assert.equal(kb.action.name, 'delete');
-			assert.equal(kb.count, 9);
-			assert.equal(kb.store.find, 'a');
+		it('interpreting keybindings', (done) => {
+			keybinder.handleKeys(['9', 'd', '3', '4', 'f', 'a'], (type, kb, status) => {
+				assert.equal(type, 'keybinding');
+				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(kb.action.name, 'delete');
+				assert.equal(kb.count, 9);
+				assert.equal(kb.store.find, 'a');
+				done();
+			});
 		});
 
-		it('supplemental keybindings', async () => {
-			keybinder.handleKeys(['"', 'a', 't']);
-			const kb = await new Promise(r => keybinder.once('keybinding', r));
-			assert.equal(kb.action.name, 'test');
-			assert.equal(kb.store.register, 'a');
+		it('supplemental keybindings', (done) => {
+			keybinder.handleKeys(['"', 'a', 't'], (type, kb, status) => {
+				assert.equal(type, 'keybinding');
+				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(kb.action.name, 'test');
+				assert.equal(kb.store.register, 'a');
+				done();
+			});
 		});
 
-		it('adjacent supplemental keybindings', async () => {
-			keybinder.handleKeys(['"', 'a', 'z', 'b', 'd', 'i', 'w']);
-			const kb = await new Promise(r => keybinder.once('keybinding', r));
-			const { register, z, inner } = kb.store;
-			assert.equal(kb.action.name, 'delete');
-			assert.deepStrictEqual([register, z, inner], ['a', 'b', 'w']);
+		it('adjacent supplemental keybindings', (done) => {
+			keybinder.handleKeys(['"', 'a', 'z', 'b', 'd', 'i', 'w'], (type, kb, status) => {
+				assert.equal(type, 'keybinding');
+				assert.equal(status, Interpreter.STATUS.DONE);
+				const { register, z, inner } = kb.store;
+				assert.equal(kb.action.name, 'delete');
+				assert.deepStrictEqual([register, z, inner], ['a', 'b', 'w']);
+				done();
+			});
 		});
 
-		it('prioritizes "keybindings" over "interprets", when both present', async () => {
-			keybinder.handleKeys(['d', 'z']);
-			const kb = await new Promise(r => keybinder.once('keybinding', r));
-			assert.equal(kb.action.name, 'i-take-priority');
+		it('accepts a filter argument when interpreting', (done) => {
+			keybinder.handleKeys(['d', 'y'], (type, kb, status) => {
+				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(type, 'cancel');
+				done();
+			});
 		});
 
-		it('accepts a filter argument when interpreting', async () => {
-			keybinder.handleKeys(['d', 'y']);
-			const kb = await new Promise(r => keybinder.once('keybinding-cancel', r));
-			assert.equal(kb.action.name, 'delete');
+		it('prioritizes "keybindings" over "interprets", when both present', (done) => {
+			keybinder.handleKeys(['d', 'z'], (type, kb, status) => {
+				assert.equal(type, 'keybinding');
+				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(kb.action.name, 'i-take-priority');
+				done();
+			});
+		});
+
+		it('accepts numbers as keybindings', (done) => {
+			keybinder.handleKeys(['0'], (type, kb, status) => {
+				assert.equal(type, 'keybinding');
+				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(kb.action.name, 'cursor-to-start');
+				done();
+			});
 		});
 	});
 
 	describe('"interprets" map', () => {
-		it('is recognized', async () => {
-			let kb;
+		it('is recognized', () => {
+			return Promise.all([
+				new Promise(resolve => {
+					keybinder.handleKeys(['i'], (type, kb, status) => {
+						assert.equal(type, 'keybinding');
+						assert.equal(status, Interpreter.STATUS.DONE);
+						assert.equal(kb.action.name, 'insert');
+						resolve();
+					})
+				}),
 
-			keybinder.handleKeys(['i']);
-			kb = await new Promise(r => keybinder.once('keybinding', r));
-			assert.equal(kb.action.name, 'insert');
-
-			keybinder.handleKeys(['d', 'i', 'w']);
-			kb = await new Promise(r => keybinder.once('keybinding', r));
-			assert.equal(kb.action.name, 'delete');
-			assert.equal(kb.store.inner, 'w');
+				new Promise(resolve => {
+					keybinder.handleKeys(['d', 'i', 'w'], (type, kb, status) => {
+						assert.equal(type, 'keybinding');
+						assert.equal(status, Interpreter.STATUS.DONE);
+						assert.equal(kb.action.name, 'delete');
+						assert.equal(kb.store.inner, 'w');
+						resolve();
+					});
+				}),
+			])
 		});
 
-		it('resets map correctly', async () => {
-			keybinder.handleKeys(['d', 'i', 'w']);
-			const kb = await new Promise(r => keybinder.once('keybinding', r));
-			assert.equal(keybinder.map.get('i').name, 'insert');
-			assert.equal(keybinder.map.get('z').name, 'nested-supplemental');
-			assert(!keybinder.map.has('['));
+		it('resets map correctly', (done) => {
+			keybinder.handleKeys(['d', 'i', 'w'], (type, kb, status) => {
+				assert.equal(type, 'keybinding');
+				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(kb.action.name, 'delete');
+				assert.equal(kb.store.inner, 'w');
+				assert.equal(keybindings.get('i').name, 'insert');
+				assert.equal(keybindings.get('z').name, 'nested-supplemental');
+				assert(!keybindings.has('['));
+				done();
+			});
 		});
 	});
 });

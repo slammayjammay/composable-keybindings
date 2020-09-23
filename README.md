@@ -175,10 +175,15 @@ Set `f` to read a key and then fire keybinding `find`.
 ```js
 vats.setKeybinding('f', {
   name: 'find',
-  behavior: ({ read }, store) => {
-    return read(1).then(keys => {
+  behavior: ({ read }, store, done) => {
+    read(1, keys => {
       store.foundKey = keys[0];
+      done();
     });
+
+    const keys = await new Promise(resolve => read(1, resolve));
+    store.foundKey = keys[0];
+    done();
   }
 });
 
@@ -279,14 +284,14 @@ Let's assume that the `j` or `cursor-down` keybinding is already defined.
 vats.setKeybinding('d', {
   name: 'delete',
   keybindings: new Map([['d', { name: 'delete-line' }]]),
-  behavior: ({ interpret }, store) => {
-    return new Promise((resolve, reject) => {
-      const filter = kb => ['motion', 'text-object'].includes(kb.type);
+  behavior: ({ interpret, done }, store) => {
+    interpret(kb => {
+      if (['motion', 'text-object'].includes(kb.type)) {
+        return done('cancel');
+      }
 
-      interpret(filter).then(keybinding => {
-        store[keybinding.type] = keybinding;
-        resolve();
-      }).catch(reject);
+      store[keybinding.type] = kb;
+      done();
     });
   },
   interprets: new Map([

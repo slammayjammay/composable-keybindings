@@ -1,25 +1,24 @@
 const util = require('util');
 const { emitKeypressEvents } = require('readline');
 const Keybinder = require('../src');
-const seeds = require('./seeds');
+const formatCharKey = require('../src/utils/format-char-key');
+const keybindings = require('./keybindings');
 
 class Playground {
 	constructor() {
 		this._onKeypress = this._onKeypress.bind(this);
 		this._onKeybinding = this._onKeybinding.bind(this);
-		this._onKeybindingCancel = this._onKeybindingCancel.bind(this);
-		this._onKeybindingError = this._onKeybindingError.bind(this);
 
-		emitKeypressEvents(process.stdin);
+		emitKeypressEvents(process.stdin, { escapeCodeTimeout: 50 });
 		process.stdin.resume();
 		process.stdin.setRawMode(true);
 		process.stdin.addListener('keypress', this._onKeypress);
 
-		this.keybinder = new Keybinder();
-		this.keybinder.setKeybindings(seeds);
-		this.keybinder.on('keybinding', this._onKeybinding);
-		this.keybinder.on('keybinding-cancel', this._onKeybindingCancel);
-		this.keybinder.on('keybinding-error', this._onKeybindingError);
+		this.keybinder = new Keybinder(keybindings, this._onKeybinding, {
+			getKeybinding: (key, map) => map.get(key.formatted),
+			isKeyNumber: key => /\d/.test(key.formatted),
+			isKeyEscape: key => key.formatted === 'escape'
+		});
 	}
 
 	_onKeypress(char, key) {
@@ -29,21 +28,14 @@ class Playground {
 			return;
 		}
 
-		this.keybinder.handleCharKey(char, key);
+		key.formatted = formatCharKey.toString(char, key);
+		this.keybinder.handleKey(key);
 	}
 
-	_onKeybinding(stuff) {
-		console.log(util.inspect(stuff, { depth: 10, colors: true }), '\n');
-	}
-
-	_onKeybindingCancel(stuff) {
-		console.log('cancel', stuff);
-	}
-
-	_onKeybindingError(e) {
-		console.log(e);
+	_onKeybinding(type, kb, status) {
+		console.log(type, util.inspect(kb, { depth: 10, colors: true }));
 	}
 }
 
-console.log('-- Entering Playground Mode --');
+console.log('-- Playground Mode --');
 new Playground();

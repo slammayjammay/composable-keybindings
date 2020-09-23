@@ -1,25 +1,13 @@
-const { promiseable } = require('./utils');
-
 class KeyReader {
-	constructor() {
-		this.reset();
-	}
-
-	reset() {
-		this.count = this.doneCb = null;
+	constructor(count, doneCb) {
+		this.count = count;
+		this.doneCb = doneCb;
 		this.keys = [];
 	}
 
-	read(count, doneCb) {
+	reset(count = this.count) {
 		this.count = count;
-
-		const usePromise = typeof doneCb !== 'function';
-
-		if (usePromise) {
-			return new Promise(resolve => this.doneCb = resolve);
-		} else {
-			this.doneCb = doneCb;
-		}
+		this.keys = [];
 	}
 
 	handleKey(key) {
@@ -27,7 +15,6 @@ class KeyReader {
 
 		if (this.keys.length === this.count) {
 			this.doneCb(this.keys);
-			this.reset();
 		}
 	}
 
