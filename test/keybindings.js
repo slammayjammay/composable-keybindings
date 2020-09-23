@@ -24,7 +24,7 @@ module.exports = new Map([
 					return done('cancel');
 				}
 
-				kb.store[subKb.action.type] = kb;
+				kb.store[subKb.action.type] = kb.name;
 				done();
 			}, kb => !['textObject', 'motion'].includes(kb.type));
 		},

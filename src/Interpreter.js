@@ -6,8 +6,6 @@ const DEFAULTS = {
 	getKeybinding: (key, map) => map.get(key),
 	isKeyNumber: key => /\d/.test(key),
 	isKeyEscape: key => key === 'escape'
-
-	// keyToString: key => key
 };
 
 const STATUS = {

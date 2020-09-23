@@ -5,13 +5,17 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha test/index.js",
-    "playground": "node test/playground.js"
+    "playground-node": "node test/playground-node.js",
+    "playground-browser": "open ./test/playground-browser/index.html",
+    "build-playground": "webpack --config ./test/playground-browser/webpack.config.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "mocha": "^7.1.0"
+    "mocha": "^7.1.0",
+    "webpack": "^4.44.2",
+    "webpack-cli": "^3.3.12"
   },
   "dependencies": {}
 }
