@@ -1,5 +1,4 @@
 const Interpreter = require('./Interpreter');
-const formatCharKey = require('./utils/format-char-key');
 
 class Keybinder {
 	static handleKeys(keys, ...args) {

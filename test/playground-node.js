@@ -1,7 +1,5 @@
 const util = require('util');
-const { emitKeypressEvents } = require('readline');
-const Keybinder = require('../src');
-const formatCharKey = require('../src/utils/format-char-key');
+const { Keybinder, nodeListener, formatCharKey } = require('../src');
 const keybindings = require('./keybindings');
 
 class Playground {
@@ -9,27 +7,17 @@ class Playground {
 		this.onKeypress = this.onKeypress.bind(this);
 		this.onKeybinding = this.onKeybinding.bind(this);
 
-		emitKeypressEvents(process.stdin, { escapeCodeTimeout: 50 });
-		process.stdin.resume();
-		process.stdin.setRawMode(true);
-		process.stdin.addListener('keypress', this.onKeypress);
-
-		this.keybinder = new Keybinder(keybindings, this.onKeybinding, {
-			getKeybinding: (key, map) => map.get(key.formatted),
-			isKeyNumber: key => /\d/.test(key.formatted),
-			isKeyEscape: key => key.formatted === 'escape'
-		});
+		this.listener = nodeListener(this.onKeypress, { autoFormat: true });
+		this.keybinder = new Keybinder(keybindings, this.onKeybinding);
 	}
 
-	onKeypress(char, key) {
-		// ctrl+c -- SIGINT
-		if (key.sequence === '\u0003') {
-			process.kill(process.pid, 'SIGINT');
+	onKeypress(_, key) {
+		if (key.formatted === 'meta+backspace') {
+			this.listener.end();
 			return;
 		}
 
-		key.formatted = formatCharKey.toString(char, key);
-		this.keybinder.handleKey(key);
+		this.keybinder.handleKey(key.formatted);
 	}
 
 	onKeybinding(type, kb, status) {

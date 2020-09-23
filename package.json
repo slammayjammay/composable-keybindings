@@ -5,7 +5,6 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha test/index.js",
-    "playground-node": "node test/playground-node.js",
     "playground-browser": "open ./test/playground-browser/index.html",
     "build-playground": "webpack --config ./test/playground-browser/webpack.config.js"
   },

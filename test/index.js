@@ -1,6 +1,5 @@
 const assert = require('assert');
-const Keybinder = require('../src');
-const Interpreter = require('../src/Interpreter');
+const { Keybinder, Interpreter } = require('../src');
 const keybindings = require('./keybindings');
 
 const keybinder = new Keybinder(keybindings);
