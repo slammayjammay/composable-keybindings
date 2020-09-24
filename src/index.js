@@ -3,6 +3,5 @@ module.exports = {
 	Interpreter: require('./Interpreter'),
 	KeyReader: require('./KeyReader'),
 	Keybinding: require('./Keybinding'),
-	nodeListener: require('./utils/node-listener'),
-	formatCharKey: require('./utils/format-char-key')
+	STATUS: require('./status')
 };

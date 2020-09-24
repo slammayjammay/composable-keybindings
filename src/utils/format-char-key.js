@@ -17,18 +17,18 @@ module.exports = {
 		return keyName;
 	},
 
+	// modifier order: ctrl+meta+shift
 	toString(char, key) {
-		const formatted = [];
 		const keyName = this.getKeyName(char, key);
 
-		formatted.push(keyName);
-		key.ctrl && formatted.unshift('ctrl');
-		(key.meta && keyName !== 'escape') && formatted.unshift('meta');
+		const modifiers = [];
+		key.ctrl && modifiers.push('ctrl');
+		(key.meta && keyName !== 'escape') && modifiers.push('meta');
 
 		if (key.shift && this.SHIFTABLE_KEYS.has(key.name)) {
-			formatted.unshift('shift');
+			modifiers.push('shift');
 		}
 
-		return formatted.join('+');
+		return [...modifiers, keyName].join('+');
 	}
 };

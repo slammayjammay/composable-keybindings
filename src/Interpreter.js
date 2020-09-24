@@ -1,5 +1,6 @@
 const Keybinding = require('./Keybinding');
 const KeyReader = require('./KeyReader');
+const STATUS = require('./status');
 const getMapDiff = require('./utils/get-map-diff');
 
 const DEFAULTS = {
@@ -8,17 +9,7 @@ const DEFAULTS = {
 	isKeyEscape: key => key === 'escape'
 };
 
-const STATUS = {
-	WAITING: 1,
-	IS_READING: 2,
-	IS_INTERPRETING: 3,
-	NEEDS_KEY: 4,
-	DONE: 5
-};
-
 class Interpreter {
-	static get STATUS() { return STATUS; }
-
 	constructor(map, doneCb, options = {}) {
 		this.map = map;
 		this.doneCb = doneCb;
@@ -33,16 +24,12 @@ class Interpreter {
 		this.cds = [{ action: null }];
 		this.keyReader = this.interpreter = null;
 
-		this.status = this.STATUS.WAITING;
-	}
-
-	get STATUS() {
-		return this.constructor.STATUS;
+		this.status = STATUS.WAITING;
 	}
 
 	reset() {
 		this.cdToRoot();
-		this.status = this.STATUS.WAITING;
+		this.status = STATUS.WAITING;
 		this.kb = new Keybinding();
 	}
 
@@ -51,17 +38,17 @@ class Interpreter {
 			return this.onDone('cancel');
 		}
 
-		if (this.status === this.STATUS.NEEDS_KEY) {
+		if (this.status === STATUS.NEEDS_KEY) {
 			return this.onNeededKey(key);
 		}
 
 		this.kb.keys.push(key);
 
-		if (this.status === this.STATUS.WAITING) {
+		if (this.status === STATUS.WAITING) {
 			this.onWaiting(key);
-		} else if (this.status === this.STATUS.IS_READING) {
+		} else if (this.status === STATUS.IS_READING) {
 			this.keyReader.handleKey(key);
-		} else if (this.status === this.STATUS.IS_INTERPRETING) {
+		} else if (this.status === STATUS.IS_INTERPRETING) {
 			this.interpreter.handleKey(key);
 		}
 	}
@@ -99,7 +86,7 @@ class Interpreter {
 	}
 
 	onNeedsKey(action) {
-		this.status = this.STATUS.NEEDS_KEY;
+		this.status = STATUS.NEEDS_KEY;
 		this.cdIntoAction(action);
 	}
 
@@ -116,21 +103,22 @@ class Interpreter {
 	}
 
 	onKeybindingMap(action) {
-		this.status = this.STATUS.WAITING;
+		this.status = STATUS.WAITING;
 		this.cdIntoAction(action);
 	}
 
 	onBehavior(action) {
-		this.status = this.STATUS.WAITING;
+		this.status = STATUS.WAITING;
 		this.cdIntoAction(action);
 		const { read, interpret, done } = this;
-		action.behavior({ read, interpret, done }, this.kb);
+		const lastKey = this.kb.keys[this.kb.keys.length - 1];
+		action.behavior({ read, interpret, done }, this.kb, lastKey);
 	}
 
 	read(count, cb) {
-		this.status = this.STATUS.IS_READING;
+		this.status = STATUS.IS_READING;
 		this.keyReader = new KeyReader(count, keys => {
-			this.status = this.STATUS.WAITING;
+			this.status = STATUS.WAITING;
 			this.keyReader.destroy();
 			this.keyReader = null;
 			cb(keys);
@@ -138,10 +126,10 @@ class Interpreter {
 	}
 
 	interpret(cb, filter) {
-		this.status = this.STATUS.IS_INTERPRETING;
+		this.status = STATUS.IS_INTERPRETING;
 
 		const doneCb = (...args) => {
-			this.status = this.STATUS.WAITING;
+			this.status = STATUS.WAITING;
 			this.interpreter.cdToRoot();
 			this.interpreter.destroy();
 			this.interpreter = null;
@@ -154,7 +142,7 @@ class Interpreter {
 
 	done(type = 'keybinding', data = this.getCurrentAction(), status) {
 		status = status || {
-			resume: this.STATUS.WAITING
+			resume: STATUS.WAITING
 		}[type];
 
 		this.onDone(type, data, status);
@@ -164,7 +152,7 @@ class Interpreter {
 	// - keybinding
 	// - unrecognized
 	// - cancel
-	onDone(type, data, status = this.STATUS.DONE) {
+	onDone(type, data, status = STATUS.DONE) {
 		this.status = status;
 
 		if (type === 'keybinding') {
@@ -172,7 +160,7 @@ class Interpreter {
 			data = this.kb;
 		}
 
-		if (this.status === this.STATUS.DONE) {
+		if (this.status === STATUS.DONE) {
 			this.doneCb(type, data, this.status);
 			this.reset();
 		}

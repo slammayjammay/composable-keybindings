@@ -1,5 +1,6 @@
 const util = require('util');
-const { Keybinder, nodeListener, formatCharKey } = require('../src');
+const { Keybinder } = require('../src');
+const nodeListener = require('../src/utils/node-listener');
 const keybindings = require('./keybindings');
 
 class Playground {
@@ -12,11 +13,6 @@ class Playground {
 	}
 
 	onKeypress(_, key) {
-		if (key.formatted === 'meta+backspace') {
-			this.listener.end();
-			return;
-		}
-
 		this.keybinder.handleKey(key.formatted);
 	}
 

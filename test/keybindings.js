@@ -2,6 +2,7 @@ module.exports = new Map([
 	['escape', { behavior: ({ done }) => done('cancel') }],
 
 	['t', { name: 'test' }],
+	['ctrl+t', { name: 'ctrl+test' }],
 	['f', {
 		name: 'find',
 		type: 'motion',
@@ -18,7 +19,7 @@ module.exports = new Map([
 			['d', { name: 'delete-line' }],
 			['z', { name: 'i-take-priority' }]
 		]),
-		behavior: ({ interpret, done }, kb) => {
+		behavior: ({ interpret, done }, kb, key) => {
 			interpret((type, subKb, status) => {
 				if (type !== 'keybinding') {
 					return done('cancel');

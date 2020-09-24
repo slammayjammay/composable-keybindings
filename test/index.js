@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { Keybinder, Interpreter } = require('../src');
+const { Keybinder, STATUS } = require('../src');
 const keybindings = require('./keybindings');
 
 const keybinder = new Keybinder(keybindings);
@@ -13,7 +13,7 @@ describe('Keybinder', () => {
 				assert.ok(kb.count);
 				assert.ok(kb.store);
 				assert.ok(kb.keys);
-				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(status, STATUS.DONE);
 				done();
 			});
 		});
@@ -21,7 +21,7 @@ describe('Keybinder', () => {
 		it('cb calls with type "unrecognized"', (done) => {
 			keybinder.handleKeys(['['], (type, kb, status) => {
 				assert.equal(type, 'unrecognized');
-				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(status, STATUS.DONE);
 				done();
 			});
 		});
@@ -32,7 +32,7 @@ describe('Keybinder', () => {
 			keybinder.handleKeys(['t'], (type, kb, status) => {
 				assert.equal(type, 'keybinding');
 				assert.equal(kb.action.name, 'test');
-				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(status, STATUS.DONE);
 				done();
 			});
 		});
@@ -40,7 +40,7 @@ describe('Keybinder', () => {
 		it('nested keybindings', (done) => {
 			keybinder.handleKeys(['y', 'y'], (type, kb, status) => {
 				assert.equal(type, 'keybinding');
-				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(status, STATUS.DONE);
 				assert.equal(kb.action.name, 'yank-line');
 				done();
 			});
@@ -49,7 +49,7 @@ describe('Keybinder', () => {
 		it('reading keybindings', (done) => {
 			keybinder.handleKeys(['f', 'a'], (type, kb, status) => {
 				assert.equal(type, 'keybinding');
-				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(status, STATUS.DONE);
 				assert.equal(kb.action.name, 'find');
 				assert.equal(kb.store.find, 'a');
 				done();
@@ -59,7 +59,7 @@ describe('Keybinder', () => {
 		it('interpreting keybindings', (done) => {
 			keybinder.handleKeys(['9', 'd', '3', '4', 'f', 'a'], (type, kb, status) => {
 				assert.equal(type, 'keybinding');
-				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(status, STATUS.DONE);
 				assert.equal(kb.action.name, 'delete');
 				assert.equal(kb.count, 9);
 				assert.equal(kb.store.find, 'a');
@@ -70,7 +70,7 @@ describe('Keybinder', () => {
 		it('supplemental keybindings', (done) => {
 			keybinder.handleKeys(['"', 'a', 't'], (type, kb, status) => {
 				assert.equal(type, 'keybinding');
-				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(status, STATUS.DONE);
 				assert.equal(kb.action.name, 'test');
 				assert.equal(kb.store.register, 'a');
 				done();
@@ -80,7 +80,7 @@ describe('Keybinder', () => {
 		it('adjacent supplemental keybindings', (done) => {
 			keybinder.handleKeys(['"', 'a', 'z', 'b', 'd', 'i', 'w'], (type, kb, status) => {
 				assert.equal(type, 'keybinding');
-				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(status, STATUS.DONE);
 				const { register, z, inner } = kb.store;
 				assert.equal(kb.action.name, 'delete');
 				assert.deepStrictEqual([register, z, inner], ['a', 'b', 'w']);
@@ -90,7 +90,7 @@ describe('Keybinder', () => {
 
 		it('accepts a filter argument when interpreting', (done) => {
 			keybinder.handleKeys(['d', 'y'], (type, kb, status) => {
-				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(status, STATUS.DONE);
 				assert.equal(type, 'cancel');
 				done();
 			});
@@ -99,7 +99,7 @@ describe('Keybinder', () => {
 		it('prioritizes "keybindings" over "interprets", when both present', (done) => {
 			keybinder.handleKeys(['d', 'z'], (type, kb, status) => {
 				assert.equal(type, 'keybinding');
-				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(status, STATUS.DONE);
 				assert.equal(kb.action.name, 'i-take-priority');
 				done();
 			});
@@ -108,7 +108,7 @@ describe('Keybinder', () => {
 		it('accepts numbers as keybindings', (done) => {
 			keybinder.handleKeys(['0'], (type, kb, status) => {
 				assert.equal(type, 'keybinding');
-				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(status, STATUS.DONE);
 				assert.equal(kb.action.name, 'cursor-to-start');
 				done();
 			});
@@ -121,7 +121,7 @@ describe('Keybinder', () => {
 				new Promise(resolve => {
 					keybinder.handleKeys(['i'], (type, kb, status) => {
 						assert.equal(type, 'keybinding');
-						assert.equal(status, Interpreter.STATUS.DONE);
+						assert.equal(status, STATUS.DONE);
 						assert.equal(kb.action.name, 'insert');
 						resolve();
 					})
@@ -130,7 +130,7 @@ describe('Keybinder', () => {
 				new Promise(resolve => {
 					keybinder.handleKeys(['d', 'i', 'w'], (type, kb, status) => {
 						assert.equal(type, 'keybinding');
-						assert.equal(status, Interpreter.STATUS.DONE);
+						assert.equal(status, STATUS.DONE);
 						assert.equal(kb.action.name, 'delete');
 						assert.equal(kb.store.inner, 'w');
 						resolve();
@@ -142,7 +142,7 @@ describe('Keybinder', () => {
 		it('resets map correctly', (done) => {
 			keybinder.handleKeys(['d', 'i', 'w'], (type, kb, status) => {
 				assert.equal(type, 'keybinding');
-				assert.equal(status, Interpreter.STATUS.DONE);
+				assert.equal(status, STATUS.DONE);
 				assert.equal(kb.action.name, 'delete');
 				assert.equal(kb.store.inner, 'w');
 				assert.equal(keybindings.get('i').name, 'insert');

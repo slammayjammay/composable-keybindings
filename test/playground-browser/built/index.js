@@ -1,1 +1,199 @@
-!function(t){var e={};function n(i){if(e[i])return e[i].exports;var s=e[i]={i:i,l:!1,exports:{}};return t[i].call(s.exports,s,s.exports,n),s.l=!0,s.exports}n.m=t,n.c=e,n.d=function(t,e,i){n.o(t,e)||Object.defineProperty(t,e,{enumerable:!0,get:i})},n.r=function(t){"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(t,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(t,"__esModule",{value:!0})},n.t=function(t,e){if(1&e&&(t=n(t)),8&e)return t;if(4&e&&"object"==typeof t&&t&&t.__esModule)return t;var i=Object.create(null);if(n.r(i),Object.defineProperty(i,"default",{enumerable:!0,value:t}),2&e&&"string"!=typeof t)for(var s in t)n.d(i,s,function(e){return t[e]}.bind(null,s));return i},n.n=function(t){var e=t&&t.__esModule?function(){return t.default}:function(){return t};return n.d(e,"a",e),e},n.o=function(t,e){return Object.prototype.hasOwnProperty.call(t,e)},n.p="",n(n.s=0)}([function(t,e,n){const i=n(1),s=n(8);console.log("-- Playground Mode --"),new class{constructor(){this.onKeypress=this.onKeypress.bind(this),this.onKeybinding=this.onKeybinding.bind(this),window.addEventListener("keydown",this.onKeypress),this.keybinder=new i(s,this.onKeybinding,{getKeybinding:(t,e)=>e.get(t.key),isKeyNumber:t=>/\d/.test(t.key),isKeyEscape:t=>"Escape"===t.key}),this.div=document.querySelector("#console"),document.querySelector("#clear").addEventListener("click",()=>this.clear())}onKeypress(t){this.keybinder.handleKey(t),"k"===t.key&&t.metaKey&&this.clear()}onKeybinding(t,e,n){const i=this.div.scrollHeight-this.div.offsetHeight===this.div.scrollTop;this.div.append(document.createElement("hr"));const s=document.createElement("pre"),r="keybinding"===t?this.formatKb(e):e;s.textContent=`"${t}" -- ${r}`,this.div.append(s),i&&this.div.scrollTo(0,this.div.scrollHeight)}clear(){this.div.innerHTML=""}formatKb(t){return JSON.stringify({keys:t.keys.map(t=>t.toString()),count:t.count,action:t.action,store:t.store},null,2)}}},function(t,e,n){t.exports=n(2)},function(t,e,n){const i=n(3);n(7);t.exports=class{static handleKeys(t,...e){const n=new this(...e);t.forEach(t=>n.handleKey(t))}constructor(t,e,n){this.originalMap=t||new Map,this.map=new Map([...this.originalMap]),this.interpreter=new i(this.map,e,n)}handleKey(t){return this.interpreter.handleKey(t)}handleKeys(t,e){return this.constructor.handleKeys(t,new Map([...this.originalMap]),e)}destroy(){this.interpreter.destroy(),this.interpreter=null,this.map.clear(),this.map=this.originalMap=null}}},function(t,e,n){const i=n(4),s=n(5),r=n(6),o={getKeybinding:(t,e)=>e.get(t),isKeyNumber:t=>/\d/.test(t),isKeyEscape:t=>"escape"===t},h={WAITING:1,IS_READING:2,IS_INTERPRETING:3,NEEDS_KEY:4,DONE:5};class a{static get STATUS(){return h}constructor(t,e,n={}){this.map=t,this.doneCb=e,this.options={...o,...n},this.read=this.read.bind(this),this.interpret=this.interpret.bind(this),this.done=this.done.bind(this),this.kb=new i({store:this.options.store||{}}),this.cds=[{action:null}],this.keyReader=this.interpreter=null,this.status=this.STATUS.WAITING}get STATUS(){return this.constructor.STATUS}reset(){this.cdToRoot(),this.status=this.STATUS.WAITING,this.kb=new i}handleKey(t){return this.options.isKeyEscape(t)?this.onDone("cancel"):this.status===this.STATUS.NEEDS_KEY?this.onNeededKey(t):(this.kb.keys.push(t),void(this.status===this.STATUS.WAITING?this.onWaiting(t):this.status===this.STATUS.IS_READING?this.keyReader.handleKey(t):this.status===this.STATUS.IS_INTERPRETING&&this.interpreter.handleKey(t)))}onWaiting(t){const e=this.options.getKeybinding(t,this.map);!this.options.isKeyNumber(t)||0===this.kb.countChars.length&&e?e?this.options.filter&&this.options.filter(e)?this.onFiltered(e):e.keybindings instanceof Map&&"function"==typeof e.behavior?this.onNeedsKey(e):e.keybindings instanceof Map?this.onKeybindingMap(e):"function"==typeof e.behavior?this.onBehavior(e):this.onDone("keybinding",e):this.onUnrecognized(t):this.onNumber(t)}onNumber(t){this.kb.countChars.push(t)}onUnrecognized(t){this.onDone("unrecognized",t)}onFiltered(t){this.onDone("filtered",t)}onNeedsKey(t){this.status=this.STATUS.NEEDS_KEY,this.cdIntoAction(t)}onNeededKey(t){const e=this.getCurrentAction();e.keybindings instanceof Map&&e.keybindings.has(t)?this.onKeybindingMap(e):"function"==typeof e.behavior&&this.onBehavior(e),this.handleKey(t)}onKeybindingMap(t){this.status=this.STATUS.WAITING,this.cdIntoAction(t)}onBehavior(t){this.status=this.STATUS.WAITING,this.cdIntoAction(t);const{read:e,interpret:n,done:i}=this;t.behavior({read:e,interpret:n,done:i},this.kb)}read(t,e){this.status=this.STATUS.IS_READING,this.keyReader=new s(t,t=>{this.status=this.STATUS.WAITING,this.keyReader.destroy(),this.keyReader=null,e(t)})}interpret(t,e){this.status=this.STATUS.IS_INTERPRETING;const{store:n}=this.kb;this.interpreter=new a(this.map,(...e)=>{this.status=this.STATUS.WAITING,this.interpreter.cdToRoot(),this.interpreter.destroy(),this.interpreter=null,t(...e)},{...this.options,store:n,filter:e})}done(t="keybinding",e=this.getCurrentAction(),n){n=n||{resume:this.STATUS.WAITING}[t],this.onDone(t,e,n)}onDone(t,e,n=this.STATUS.DONE){this.status=n,"keybinding"===t&&(this.kb.action=e,e=this.kb),this.status===this.STATUS.DONE&&(this.doneCb(t,e,this.status),this.reset())}cdIntoAction(t){if(this.getCurrentAction()===t)return;const e=["interprets","keybindings"].map(e=>t[e]).filter(t=>t instanceof Map),[n,i]=r(this.map,...e);e.forEach(t=>t.forEach((t,e)=>this.map.set(e,t))),this.cds.push({action:t,replaced:n,added:i})}getCurrentAction(){return this.cds[this.cds.length-1].action}cdUp(){const{action:t,replaced:e,added:n}=this.cds.pop();e.forEach((t,e)=>this.map.set(e,t)),n.forEach((t,e)=>this.map.delete(e)),e.clear(),n.clear()}cdToRoot(){for(;this.cds.length>1;)this.cdUp()}destroy(){this.keyReader&&this.keyReader.destroy(),this.interpreter&&this.interpreter.cdToRoot(),this.interpreter&&this.interpreter.destroy(),this.map=this.store=this.doneCb=this.filter=null,this.kb=null,this.keyReader=this.interpreter=null}}t.exports=a},function(t,e){t.exports=class{constructor(t={}){this.keys=t.keys||[],this.countChars=t.countChars||[],this.action=t.action,this.store=t.store||{}}get count(){return 0===this.countChars.length?1:parseInt(this.countChars.join(""))}}},function(t,e){t.exports=class{constructor(t,e){this.count=t,this.doneCb=e,this.keys=[]}reset(t=this.count){this.count=t,this.keys=[]}handleKey(t){this.keys.push(t),this.keys.length===this.count&&this.doneCb(this.keys)}destroy(){this.count=this.doneCb=this.keys=null}}},function(t,e){t.exports=(t,...e)=>{const n=new Map,i=new Map;return e.forEach(e=>{for(const[s,r]of e.entries())t.has(s)?n.set(s,t.get(s)):i.set(s,r)}),[n,i]}},function(t,e){const n=new Set(["return","tab","space","backspace","enter","up","down","left","right"]),i=new Set(["escape","return","tab","backspace","up","down","left","right"]);t.exports={getKeyName(t,e){let i=t;return(n.has(e.name)||e.ctrl||e.meta)&&(i=e.name),i},toString(t,e){const n=[],s=this.getKeyName(t,e);return n.push(s),e.ctrl&&n.unshift("ctrl"),e.meta&&"escape"!==s&&n.unshift("meta"),e.shift&&i.has(e.name)&&n.unshift("shift"),n.join("+")}}},function(t,e){t.exports=new Map([["escape",{behavior:({done:t})=>t("cancel")}],["t",{name:"test"}],["f",{name:"find",type:"motion",behavior:({read:t,done:e},n)=>{t(1,t=>{n.store.find=t[0],e()})}}],["d",{name:"delete",keybindings:new Map([["d",{name:"delete-line"}],["z",{name:"i-take-priority"}]]),behavior:({interpret:t,done:e},n)=>{t((t,i,s)=>{if("keybinding"!==t)return e("cancel");n.store[i.action.type]=n.name,e()},t=>!["textObject","motion"].includes(t.type))},interprets:new Map([["z",{name:"i-dont-take-priority"}],["i",{name:"inner",type:"textObject",behavior:({read:t,done:e},n)=>{t(1,t=>{n.store.inner=t[0],e()})}}],["[",{name:"i-am-not-root"}]])}],["y",{name:"yank",keybindings:new Map([["y",{name:"yank-line"}],["z",{name:"zzzzzzzzzzzz"}]])}],["i",{name:"insert"}],["j",{name:"cursor-down",type:"motion"}],["0",{name:"cursor-to-start",type:"motion"}],['"',{name:"register",behavior:({read:t,done:e},n)=>{t(1,t=>{n.store.register=t[0],e("resume")})}}],["z",{name:"nested-supplemental",behavior:({read:t,done:e},n)=>{t(1,t=>{n.store.z=t[0],e("resume")})}}]])}]);
+/******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// define getter function for harmony exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		if(!__webpack_require__.o(exports, name)) {
+/******/ 			Object.defineProperty(exports, name, { enumerable: true, get: getter });
+/******/ 		}
+/******/ 	};
+/******/
+/******/ 	// define __esModule on exports
+/******/ 	__webpack_require__.r = function(exports) {
+/******/ 		if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 			Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 		}
+/******/ 		Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 	};
+/******/
+/******/ 	// create a fake namespace object
+/******/ 	// mode & 1: value is a module id, require it
+/******/ 	// mode & 2: merge all properties of value into the ns
+/******/ 	// mode & 4: return value when already ns object
+/******/ 	// mode & 8|1: behave like require
+/******/ 	__webpack_require__.t = function(value, mode) {
+/******/ 		if(mode & 1) value = __webpack_require__(value);
+/******/ 		if(mode & 8) return value;
+/******/ 		if((mode & 4) && typeof value === 'object' && value && value.__esModule) return value;
+/******/ 		var ns = Object.create(null);
+/******/ 		__webpack_require__.r(ns);
+/******/ 		Object.defineProperty(ns, 'default', { enumerable: true, value: value });
+/******/ 		if(mode & 2 && typeof value != 'string') for(var key in value) __webpack_require__.d(ns, key, function(key) { return value[key]; }.bind(null, key));
+/******/ 		return ns;
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = "./test/playground-browser/index.js");
+/******/ })
+/************************************************************************/
+/******/ ({
+
+/***/ "./src/Interpreter.js":
+/*!****************************!*\
+  !*** ./src/Interpreter.js ***!
+  \****************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("const Keybinding = __webpack_require__(/*! ./Keybinding */ \"./src/Keybinding.js\");\nconst KeyReader = __webpack_require__(/*! ./KeyReader */ \"./src/KeyReader.js\");\nconst STATUS = __webpack_require__(/*! ./status */ \"./src/status.js\");\nconst getMapDiff = __webpack_require__(/*! ./utils/get-map-diff */ \"./src/utils/get-map-diff.js\");\n\nconst DEFAULTS = {\n\tgetKeybinding: (key, map) => map.get(key),\n\tisKeyNumber: key => /\\d/.test(key),\n\tisKeyEscape: key => key === 'escape'\n};\n\nclass Interpreter {\n\tconstructor(map, doneCb, options = {}) {\n\t\tthis.map = map;\n\t\tthis.doneCb = doneCb;\n\t\tthis.options = { ...DEFAULTS, ...options };\n\n\t\tthis.read = this.read.bind(this);\n\t\tthis.interpret = this.interpret.bind(this);\n\t\tthis.done = this.done.bind(this);\n\n\t\tthis.kb = new Keybinding({ store: this.options.store || {} });\n\n\t\tthis.cds = [{ action: null }];\n\t\tthis.keyReader = this.interpreter = null;\n\n\t\tthis.status = STATUS.WAITING;\n\t}\n\n\treset() {\n\t\tthis.cdToRoot();\n\t\tthis.status = STATUS.WAITING;\n\t\tthis.kb = new Keybinding();\n\t}\n\n\thandleKey(key) {\n\t\tif (this.options.isKeyEscape(key)) {\n\t\t\treturn this.onDone('cancel');\n\t\t}\n\n\t\tif (this.status === STATUS.NEEDS_KEY) {\n\t\t\treturn this.onNeededKey(key);\n\t\t}\n\n\t\tthis.kb.keys.push(key);\n\n\t\tif (this.status === STATUS.WAITING) {\n\t\t\tthis.onWaiting(key);\n\t\t} else if (this.status === STATUS.IS_READING) {\n\t\t\tthis.keyReader.handleKey(key);\n\t\t} else if (this.status === STATUS.IS_INTERPRETING) {\n\t\t\tthis.interpreter.handleKey(key);\n\t\t}\n\t}\n\n\tonWaiting(key) {\n\t\tconst action = this.options.getKeybinding(key, this.map);\n\n\t\tif (this.options.isKeyNumber(key) && !(this.kb.countChars.length === 0 && action)) {\n\t\t\tthis.onNumber(key);\n\t\t} else if (!action) {\n\t\t\tthis.onUnrecognized(key);\n\t\t} else if (this.options.filter && this.options.filter(action)) {\n\t\t\tthis.onFiltered(action);\n\t\t} else if (action.keybindings instanceof Map && typeof action.behavior === 'function') {\n\t\t\tthis.onNeedsKey(action);\n\t\t} else if (action.keybindings instanceof Map) {\n\t\t\tthis.onKeybindingMap(action);\n\t\t} else if (typeof action.behavior === 'function') {\n\t\t\tthis.onBehavior(action);\n\t\t} else {\n\t\t\tthis.onDone('keybinding', action);\n\t\t}\n\t}\n\n\tonNumber(key) {\n\t\tthis.kb.countChars.push(key);\n\t}\n\n\tonUnrecognized(key) {\n\t\tthis.onDone('unrecognized', key);\n\t}\n\n\tonFiltered(action) {\n\t\tthis.onDone('filtered', action);\n\t}\n\n\tonNeedsKey(action) {\n\t\tthis.status = STATUS.NEEDS_KEY;\n\t\tthis.cdIntoAction(action);\n\t}\n\n\tonNeededKey(key) {\n\t\tconst action = this.getCurrentAction();\n\n\t\tif (action.keybindings instanceof Map && action.keybindings.has(key)) {\n\t\t\tthis.onKeybindingMap(action);\n\t\t} else if (typeof action.behavior === 'function') {\n\t\t\tthis.onBehavior(action);\n\t\t}\n\n\t\tthis.handleKey(key);\n\t}\n\n\tonKeybindingMap(action) {\n\t\tthis.status = STATUS.WAITING;\n\t\tthis.cdIntoAction(action);\n\t}\n\n\tonBehavior(action) {\n\t\tthis.status = STATUS.WAITING;\n\t\tthis.cdIntoAction(action);\n\t\tconst { read, interpret, done } = this;\n\t\taction.behavior({ read, interpret, done }, this.kb);\n\t}\n\n\tread(count, cb) {\n\t\tthis.status = STATUS.IS_READING;\n\t\tthis.keyReader = new KeyReader(count, keys => {\n\t\t\tthis.status = STATUS.WAITING;\n\t\t\tthis.keyReader.destroy();\n\t\t\tthis.keyReader = null;\n\t\t\tcb(keys);\n\t\t});\n\t}\n\n\tinterpret(cb, filter) {\n\t\tthis.status = STATUS.IS_INTERPRETING;\n\n\t\tconst doneCb = (...args) => {\n\t\t\tthis.status = STATUS.WAITING;\n\t\t\tthis.interpreter.cdToRoot();\n\t\t\tthis.interpreter.destroy();\n\t\t\tthis.interpreter = null;\n\t\t\tcb(...args);\n\t\t};\n\n\t\tconst { store } = this.kb;\n\t\tthis.interpreter = new Interpreter(this.map, doneCb, { ...this.options, store, filter });\n\t}\n\n\tdone(type = 'keybinding', data = this.getCurrentAction(), status) {\n\t\tstatus = status || {\n\t\t\tresume: STATUS.WAITING\n\t\t}[type];\n\n\t\tthis.onDone(type, data, status);\n\t}\n\n\t// types\n\t// - keybinding\n\t// - unrecognized\n\t// - cancel\n\tonDone(type, data, status = STATUS.DONE) {\n\t\tthis.status = status;\n\n\t\tif (type === 'keybinding') {\n\t\t\tthis.kb.action = data;\n\t\t\tdata = this.kb;\n\t\t}\n\n\t\tif (this.status === STATUS.DONE) {\n\t\t\tthis.doneCb(type, data, this.status);\n\t\t\tthis.reset();\n\t\t}\n\t}\n\n\tcdIntoAction(action) {\n\t\tif (this.getCurrentAction() === action) {\n\t\t\treturn;\n\t\t}\n\n\t\tconst props = ['interprets', 'keybindings'];\n\t\tconst maps = props.map(p => action[p]).filter(m => m instanceof Map);\n\n\t\tconst [replaced, added] = getMapDiff(this.map, ...maps);\n\n\t\tmaps.forEach(map => map.forEach((val, key) => this.map.set(key, val)));\n\n\t\tthis.cds.push({ action, replaced, added });\n\t}\n\n\tgetCurrentAction() {\n\t\treturn this.cds[this.cds.length - 1].action;\n\t}\n\n\tcdUp() {\n\t\tconst { action, replaced, added } = this.cds.pop();\n\n\t\treplaced.forEach((val, key) => this.map.set(key, val));\n\t\tadded.forEach((_, key) => this.map.delete(key));\n\n\t\treplaced.clear();\n\t\tadded.clear();\n\t}\n\n\tcdToRoot() {\n\t\twhile (this.cds.length > 1) {\n\t\t\tthis.cdUp();\n\t\t}\n\t}\n\n\tdestroy() {\n\t\tthis.keyReader && this.keyReader.destroy();\n\t\tthis.interpreter && this.interpreter.cdToRoot();\n\t\tthis.interpreter && this.interpreter.destroy();\n\n\t\tthis.map = this.store = this.doneCb = this.filter = null;\n\t\tthis.kb = null;\n\t\tthis.keyReader = this.interpreter = null;\n\t}\n}\n\nmodule.exports = Interpreter;\n\n\n//# sourceURL=webpack:///./src/Interpreter.js?");
+
+/***/ }),
+
+/***/ "./src/KeyReader.js":
+/*!**************************!*\
+  !*** ./src/KeyReader.js ***!
+  \**************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("class KeyReader {\n\tconstructor(count, doneCb) {\n\t\tthis.count = count;\n\t\tthis.doneCb = doneCb;\n\t\tthis.keys = [];\n\t}\n\n\treset(count = this.count) {\n\t\tthis.count = count;\n\t\tthis.keys = [];\n\t}\n\n\thandleKey(key) {\n\t\tthis.keys.push(key);\n\n\t\tif (this.keys.length === this.count) {\n\t\t\tthis.doneCb(this.keys);\n\t\t}\n\t}\n\n\tdestroy() {\n\t\tthis.count = this.doneCb = this.keys = null;\n\t}\n}\n\nmodule.exports = KeyReader;\n\n\n//# sourceURL=webpack:///./src/KeyReader.js?");
+
+/***/ }),
+
+/***/ "./src/Keybinder.js":
+/*!**************************!*\
+  !*** ./src/Keybinder.js ***!
+  \**************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("const Interpreter = __webpack_require__(/*! ./Interpreter */ \"./src/Interpreter.js\");\n\nclass Keybinder {\n\tstatic handleKeys(keys, ...args) {\n\t\tconst keybinder = new this(...args);\n\t\tkeys.forEach(key => keybinder.handleKey(key));\n\t}\n\n\tconstructor(map, cb, options) {\n\t\tthis.originalMap = map ? map : new Map();\n\t\tthis.map = new Map([...this.originalMap]);\n\t\tthis.interpreter = new Interpreter(this.map, cb, options);\n\t}\n\n\thandleKey(key) {\n\t\treturn this.interpreter.handleKey(key);\n\t}\n\n\thandleKeys(keys, cb) {\n\t\treturn this.constructor.handleKeys(keys, new Map([...this.originalMap]), cb);\n\t}\n\n\tdestroy() {\n\t\tthis.interpreter.destroy();\n\t\tthis.interpreter = null;\n\t\tthis.map.clear();\n\t\tthis.map = this.originalMap = null;\n\t}\n}\n\nmodule.exports = Keybinder;\n\n\n//# sourceURL=webpack:///./src/Keybinder.js?");
+
+/***/ }),
+
+/***/ "./src/Keybinding.js":
+/*!***************************!*\
+  !*** ./src/Keybinding.js ***!
+  \***************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("module.exports = class Keybinding {\n\tconstructor(options = {}) {\n\t\tthis.keys = options.keys || [];\n\t\tthis.countChars = options.countChars || [];\n\t\tthis.action = options.action;\n\t\tthis.store = options.store || {};\n\t}\n\n\tget count() {\n\t\treturn this.countChars.length === 0 ? 1 : parseInt(this.countChars.join(''));\n\t}\n}\n\n\n//# sourceURL=webpack:///./src/Keybinding.js?");
+
+/***/ }),
+
+/***/ "./src/index.js":
+/*!**********************!*\
+  !*** ./src/index.js ***!
+  \**********************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("module.exports = {\n\tKeybinder: __webpack_require__(/*! ./Keybinder */ \"./src/Keybinder.js\"),\n\tInterpreter: __webpack_require__(/*! ./Interpreter */ \"./src/Interpreter.js\"),\n\tKeyReader: __webpack_require__(/*! ./KeyReader */ \"./src/KeyReader.js\"),\n\tKeybinding: __webpack_require__(/*! ./Keybinding */ \"./src/Keybinding.js\"),\n\tSTATUS: __webpack_require__(/*! ./status */ \"./src/status.js\"),\n\t// nodeListener: require('./utils/node-listener'),\n\t// formatCharKey: require('./utils/format-char-key'),\n\t// formatKeyboardEvent: require('./utils/format-char-key')\n};\n\n\n//# sourceURL=webpack:///./src/index.js?");
+
+/***/ }),
+
+/***/ "./src/status.js":
+/*!***********************!*\
+  !*** ./src/status.js ***!
+  \***********************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("module.exports = {\n\tWAITING: 1,\n\tIS_READING: 2,\n\tIS_INTERPRETING: 3,\n\tNEEDS_KEY: 4,\n\tDONE: 5\n};\n\n\n//# sourceURL=webpack:///./src/status.js?");
+
+/***/ }),
+
+/***/ "./src/utils/format-keyboard-event.js":
+/*!********************************************!*\
+  !*** ./src/utils/format-keyboard-event.js ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("module.exports = {\n\tUSE_KEY_NAME: new Set([\n\t\t'return', 'tab', 'space', 'backspace', 'enter', 'up', 'down', 'left', 'right'\n\t]),\n\n\tSHIFTABLE_KEYS: new Set([\n\t\t'escape', 'return', 'tab', 'backspace', 'up', 'down', 'left', 'right'\n\t]),\n\n\tgetKeyName(event) {\n\t\treturn event.key;\n\t},\n\n\t// modifier order: ctrl+meta+shift\n\ttoString(event) {\n\t\tconst keyName = this.getKeyName(event);\n\n\t\tconst modifiers = [];\n\t\tevent.ctrlKey && modifiers.push('ctrl');\n\t\tevent.metaKey && modifiers.push('meta');\n\n\t\tif (event.shiftKey && this.SHIFTABLE_KEYS.has(keyName)) {\n\t\t\tmodifiers.push('shift');\n\t\t}\n\n\t\treturn [...modifiers, keyName].join('+');\n\t}\n};\n\n\n//# sourceURL=webpack:///./src/utils/format-keyboard-event.js?");
+
+/***/ }),
+
+/***/ "./src/utils/get-map-diff.js":
+/*!***********************************!*\
+  !*** ./src/utils/get-map-diff.js ***!
+  \***********************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("module.exports = (original, ...maps) => {\n\tconst replaced = new Map();\n\tconst added = new Map();\n\n\tmaps.forEach(map => {\n\t\tfor (const [key, val] of map.entries()) {\n\t\t\tif (original.has(key)) {\n\t\t\t\treplaced.set(key, original.get(key));\n\t\t\t} else {\n\t\t\t\tadded.set(key, val);\n\t\t\t}\n\t\t}\n\t});\n\n\treturn [replaced, added];\n};\n\n\n//# sourceURL=webpack:///./src/utils/get-map-diff.js?");
+
+/***/ }),
+
+/***/ "./test/keybindings.js":
+/*!*****************************!*\
+  !*** ./test/keybindings.js ***!
+  \*****************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+eval("module.exports = new Map([\n\t['escape', { behavior: ({ done }) => done('cancel') }],\n\n\t['t', { name: 'test' }],\n\t['ctrl+t', { name: 'ctrl+test' }],\n\t['f', {\n\t\tname: 'find',\n\t\ttype: 'motion',\n\t\tbehavior: ({ read, done }, kb) => {\n\t\t\tread(1, keys => {\n\t\t\t\tkb.store.find = keys[0];\n\t\t\t\tdone();\n\t\t\t});\n\t\t}\n\t}],\n\t['d', {\n\t\tname: 'delete',\n\t\tkeybindings: new Map([\n\t\t\t['d', { name: 'delete-line' }],\n\t\t\t['z', { name: 'i-take-priority' }]\n\t\t]),\n\t\tbehavior: ({ interpret, done }, kb) => {\n\t\t\tinterpret((type, subKb, status) => {\n\t\t\t\tif (type !== 'keybinding') {\n\t\t\t\t\treturn done('cancel');\n\t\t\t\t}\n\n\t\t\t\tkb.store[subKb.action.type] = kb.name;\n\t\t\t\tdone();\n\t\t\t}, kb => !['textObject', 'motion'].includes(kb.type));\n\t\t},\n\t\tinterprets: new Map([\n\t\t\t['z', { name: 'i-dont-take-priority' }],\n\t\t\t['i', {\n\t\t\t\tname: 'inner',\n\t\t\t\ttype: 'textObject',\n\t\t\t\tbehavior: ({ read, done }, kb) => {\n\t\t\t\t\tread(1, keys => {\n\t\t\t\t\t\tkb.store.inner = keys[0];\n\t\t\t\t\t\tdone();\n\t\t\t\t\t});\n\t\t\t\t}\n\t\t\t}],\n\t\t\t['[', {\n\t\t\t\tname: 'i-am-not-root'\n\t\t\t}]\n\t\t])\n\t}],\n\t['y', {\n\t\tname: 'yank',\n\t\tkeybindings: new Map([\n\t\t\t['y', { name: 'yank-line' }],\n\t\t\t['z', { name: 'zzzzzzzzzzzz' }],\n\t\t])\n\t}],\n\t['i', { name: 'insert' }],\n\t['j', { name: 'cursor-down', type: 'motion' }],\n\t['0', { name: 'cursor-to-start', type: 'motion' }],\n\t['\"', {\n\t\tname: 'register',\n\t\tbehavior: ({ read, done }, kb) => {\n\t\t\tread(1, keys => {\n\t\t\t\tkb.store.register = keys[0];\n\t\t\t\tdone('resume');\n\t\t\t});\n\t\t},\n\t}],\n\t['z', {\n\t\tname: 'nested-supplemental',\n\t\tbehavior: ({ read, done }, kb) => {\n\t\t\tread(1, keys => {\n\t\t\t\tkb.store.z = keys[0];\n\t\t\t\tdone('resume');\n\t\t\t});\n\t\t}\n\t}]\n]);\n\n\n//# sourceURL=webpack:///./test/keybindings.js?");
+
+/***/ }),
+
+/***/ "./test/playground-browser/index.js":
+/*!******************************************!*\
+  !*** ./test/playground-browser/index.js ***!
+  \******************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("const { Keybinder } = __webpack_require__(/*! ../../src */ \"./src/index.js\");\nconst formatKeyboardEvent = __webpack_require__(/*! ../../src/utils/format-keyboard-event */ \"./src/utils/format-keyboard-event.js\");\nconst keybindings = __webpack_require__(/*! ../keybindings */ \"./test/keybindings.js\");\n\nclass Playground {\n\tconstructor() {\n\t\tthis.onKeypress = this.onKeypress.bind(this);\n\t\tthis.onKeybinding = this.onKeybinding.bind(this);\n\n\t\tthis.keybinder = new Keybinder(keybindings, this.onKeybinding, {\n\t\t\tgetKeybinding: (key, map) => map.get(formatKeyboardEvent.toString(key)),\n\t\t\tisKeyNumber: key => /\\d/.test(key.key),\n\t\t\tisKeyEscape: key => key.key === 'Escape'\n\t\t});\n\n\t\twindow.addEventListener('keydown', this.onKeypress);\n\t\tthis.div = document.querySelector('#console');\n\t\tdocument.querySelector('#clear').addEventListener('click', () => this.clear());\n\t}\n\n\tonKeypress(event) {\n\t\tthis.keybinder.handleKey(event);\n\n\t\tif (event.key === 'k' && event.metaKey) {\n\t\t\tthis.clear();\n\t\t}\n\t}\n\n\tonKeybinding(type, kb, status) {\n\t\tconst isAtBottom = this.div.scrollHeight - this.div.offsetHeight === this.div.scrollTop;\n\n\t\tthis.div.append(document.createElement('hr'));\n\t\tconst pre = document.createElement('pre');\n\t\tconst formatted = type === 'keybinding' ? this.formatKb(kb) : kb;\n\t\tpre.textContent = `\"${type}\" -- ${formatted}`;\n\t\tthis.div.append(pre);\n\n\t\tisAtBottom && this.div.scrollTo(0, this.div.scrollHeight);\n\t}\n\n\tclear() {\n\t\tthis.div.innerHTML = '';\n\t}\n\n\tformatKb(kb) {\n\t\treturn JSON.stringify({\n\t\t\tkeys: kb.keys.map(key => key.toString()),\n\t\t\tcount: kb.count,\n\t\t\taction: kb.action,\n\t\t\tstore: kb.store\n\t\t}, null, 2);\n\t}\n}\n\nconsole.log('-- Playground Mode --');\nnew Playground();\n\n\n//# sourceURL=webpack:///./test/playground-browser/index.js?");
+
+/***/ })
+
+/******/ });

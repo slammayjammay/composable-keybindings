@@ -1,4 +1,5 @@
-const Keybinder = require('../../src');
+const { Keybinder } = require('../../src');
+const formatKeyboardEvent = require('../../src/utils/format-keyboard-event');
 const keybindings = require('../keybindings');
 
 class Playground {
@@ -6,16 +7,14 @@ class Playground {
 		this.onKeypress = this.onKeypress.bind(this);
 		this.onKeybinding = this.onKeybinding.bind(this);
 
-		window.addEventListener('keydown', this.onKeypress);
-
 		this.keybinder = new Keybinder(keybindings, this.onKeybinding, {
-			getKeybinding: (key, map) => map.get(key.key),
+			getKeybinding: (key, map) => map.get(formatKeyboardEvent.toString(key)),
 			isKeyNumber: key => /\d/.test(key.key),
 			isKeyEscape: key => key.key === 'Escape'
 		});
 
+		window.addEventListener('keydown', this.onKeypress);
 		this.div = document.querySelector('#console');
-
 		document.querySelector('#clear').addEventListener('click', () => this.clear());
 	}
 
