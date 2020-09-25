@@ -1,6 +1,8 @@
 module.exports = new Map([
 	['escape', { behavior: ({ done }) => done('cancel') }],
 
+	['b', 'back'],
+
 	['t', { name: 'test' }],
 	['ctrl+t', { name: 'ctrl+test' }],
 	['f', {

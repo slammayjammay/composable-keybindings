@@ -7,7 +7,7 @@ const DEFAULTS = {
 	onSigStop: null
 };
 
-class NodeListener {
+module.exports = class NodeListener {
 	constructor(cb, options) {
 		this.cb = cb;
 		this.options = { ...DEFAULTS, ...options };
@@ -61,6 +61,8 @@ class NodeListener {
 			this.cb(char, key);
 		}
 	}
-}
 
-module.exports = (...args) => new NodeListener(...args);
+	destroy() {
+		this.cb = this.options = null;
+	}
+};

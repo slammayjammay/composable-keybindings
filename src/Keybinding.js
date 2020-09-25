@@ -4,9 +4,11 @@ module.exports = class Keybinding {
 		this.countChars = options.countChars || [];
 		this.action = options.action;
 		this.store = options.store || {};
+		this.count = 1;
 	}
 
-	get count() {
-		return this.countChars.length === 0 ? 1 : parseInt(this.countChars.join(''));
+	addCountChar(char) {
+		this.countChars.push(char);
+		this.count = parseInt(this.countChars.join(''));
 	}
 }

@@ -1,6 +1,6 @@
 const util = require('util');
 const { Keybinder } = require('../src');
-const nodeListener = require('../src/utils/node-listener');
+const NodeListener = require('../src/utils/NodeListener');
 const keybindings = require('./keybindings');
 
 class Playground {
@@ -8,7 +8,7 @@ class Playground {
 		this.onKeypress = this.onKeypress.bind(this);
 		this.onKeybinding = this.onKeybinding.bind(this);
 
-		this.listener = nodeListener(this.onKeypress, { autoFormat: true });
+		this.listener = new NodeListener(this.onKeypress, { autoFormat: true });
 		this.keybinder = new Keybinder(keybindings, this.onKeybinding);
 	}
 

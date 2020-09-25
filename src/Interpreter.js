@@ -74,7 +74,7 @@ class Interpreter {
 	}
 
 	onNumber(key) {
-		this.kb.countChars.push(key);
+		this.kb.addCountChar(key);
 	}
 
 	onUnrecognized(key) {
@@ -113,6 +113,7 @@ class Interpreter {
 		const { read, interpret, done } = this;
 		const lastKey = this.kb.keys[this.kb.keys.length - 1];
 		action.behavior({ read, interpret, done }, this.kb, lastKey);
+		// TODO: check if return value is promise
 	}
 
 	read(count, cb) {
