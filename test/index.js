@@ -1,3 +1,4 @@
+// TODO: make tests work again
 import assert from 'assert';
 import { Keybinder, STATUS } from '../src/index.js';
 import keybindings from './keybindings.js';
