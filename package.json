@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Create composable keybindings in Node or the browser.",
   "main": "src/index.js",
+  "exports": {
+    "./utils": "./src/utils"
+  },
   "scripts": {
     "test": "mocha test/index.js",
     "playground-browser": "open ./test/playground-browser/index.html",
