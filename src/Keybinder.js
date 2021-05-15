@@ -1,4 +1,4 @@
-const Interpreter = require('./Interpreter');
+import Interpreter from './Interpreter.js';
 
 class Keybinder {
 	static handleKeys(keys, ...args) {
@@ -28,4 +28,4 @@ class Keybinder {
 	}
 }
 
-module.exports = Keybinder;
+export default Keybinder;

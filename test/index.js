@@ -1,6 +1,6 @@
-const assert = require('assert');
-const { Keybinder, STATUS } = require('../src');
-const keybindings = require('./keybindings');
+import assert from 'assert';
+import { Keybinder, STATUS } from '../src/index.js';
+import keybindings from './keybindings.js';
 
 const keybinder = new Keybinder(keybindings);
 

@@ -1,7 +1,5 @@
-module.exports = {
-	Keybinder: require('./Keybinder'),
-	Interpreter: require('./Interpreter'),
-	KeyReader: require('./KeyReader'),
-	Keybinding: require('./Keybinding'),
-	STATUS: require('./status')
-};
+export { default as Keybinder } from './Keybinder.js';
+export { default as Interpreter } from './Interpreter.js';
+export { default as KeyReader } from './KeyReader.js';
+export { default as Keybinding } from './Keybinding.js';
+export { default as STATUS } from './status.js';

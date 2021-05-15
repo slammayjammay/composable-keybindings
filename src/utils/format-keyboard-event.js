@@ -1,4 +1,4 @@
-module.exports = {
+export default {
 	USE_KEY_NAME: new Set([
 		'return', 'tab', 'space', 'backspace', 'enter', 'up', 'down', 'left', 'right'
 	]),

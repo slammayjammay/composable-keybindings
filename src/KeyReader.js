@@ -23,4 +23,4 @@ class KeyReader {
 	}
 }
 
-module.exports = KeyReader;
+export default KeyReader;

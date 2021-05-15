@@ -1,5 +1,5 @@
-const { emitKeypressEvents } = require('readline');
-const formatCharKey = require('./format-char-key');
+import { emitKeypressEvents } from 'readline';
+import formatCharKey from './format-char-key.js';
 
 const DEFAULTS = {
 	escapeCodeTimeout: 50,
@@ -7,7 +7,7 @@ const DEFAULTS = {
 	onSigStop: null
 };
 
-module.exports = class NodeListener {
+export default class NodeListener {
 	constructor(cb, options) {
 		this.cb = cb;
 		this.options = { ...DEFAULTS, ...options };

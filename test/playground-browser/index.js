@@ -1,6 +1,6 @@
-const { Keybinder } = require('../../src');
-const formatKeyboardEvent = require('../../src/utils/format-keyboard-event');
-const keybindings = require('../keybindings');
+import { Keybinder } from '../../src';
+import formatKeyboardEvent from '../../src/utils/format-keyboard-event';
+import keybindings from '../keybindings';
 
 class Playground {
 	constructor() {

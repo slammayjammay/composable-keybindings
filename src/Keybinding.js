@@ -1,4 +1,4 @@
-module.exports = class Keybinding {
+export default class Keybinding {
 	constructor(options = {}) {
 		this.keys = options.keys || [];
 		this.countChars = options.countChars || [];

@@ -1,4 +1,4 @@
-module.exports = (original, ...maps) => {
+export default (original, ...maps) => {
 	const replaced = new Map();
 	const added = new Map();
 

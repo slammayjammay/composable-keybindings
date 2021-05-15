@@ -1,7 +1,7 @@
-const Keybinding = require('./Keybinding');
-const KeyReader = require('./KeyReader');
-const STATUS = require('./status');
-const getMapDiff = require('./utils/get-map-diff');
+import Keybinding from './Keybinding.js';
+import KeyReader from './KeyReader.js';
+import STATUS from './status.js';
+import getMapDiff from './utils/get-map-diff.js';
 
 const DEFAULTS = {
 	getKeybinding: (key, map) => map.get(key),
@@ -213,4 +213,4 @@ class Interpreter {
 	}
 }
 
-module.exports = Interpreter;
+export default Interpreter;

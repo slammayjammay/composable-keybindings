@@ -1,7 +1,7 @@
-const util = require('util');
-const { Keybinder } = require('../src');
-const NodeListener = require('../src/utils/NodeListener');
-const keybindings = require('./keybindings');
+import util from 'util';
+import { Keybinder } from '../src/index.js';
+import NodeListener from '../src/utils/NodeListener.js';
+import keybindings from './keybindings.js';
 
 class Playground {
 	constructor() {

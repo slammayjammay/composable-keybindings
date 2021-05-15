@@ -1,4 +1,4 @@
-module.exports = new Map([
+export default new Map([
 	['escape', { behavior: ({ done }) => done('cancel') }],
 
 	['b', 'back'],
