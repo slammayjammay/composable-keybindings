@@ -2,9 +2,10 @@
   "name": "composable-keybindings",
   "version": "1.0.0",
   "description": "Create composable keybindings in Node or the browser.",
-  "main": "src/index.js",
+  "type": "module",
   "exports": {
-    "./utils": "./src/utils"
+    ".": "./src/index.js",
+    "./NodeListener": "./src/utils/NodeListener.js"
   },
   "scripts": {
     "test": "mocha test/index.js",
