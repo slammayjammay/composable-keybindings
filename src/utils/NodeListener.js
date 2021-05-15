@@ -14,6 +14,12 @@ module.exports = class NodeListener {
 
 		this.listener = this.listener.bind(this);
 
+		this.listenerAdded = false;
+
+		emitKeypressEvents(process.stdin, {
+			escapeCodeTimeout: this.options.escapeCodeTimeout
+		});
+
 		this.start();
 
 		// ensure raw mode is set correctly on SIGCONT
@@ -26,12 +32,9 @@ module.exports = class NodeListener {
 	}
 
 	start() {
-		emitKeypressEvents(process.stdin, {
-			escapeCodeTimeout: this.options.escapeCodeTimeout
-		});
 		!process.stdin.isRaw && process.stdin.setRawMode(true);
 		process.stdin.isPaused() && process.stdin.resume();
-		this.addListener();
+		!this.listenerAdded && this.addListener();
 	}
 
 	end() {
@@ -42,10 +45,12 @@ module.exports = class NodeListener {
 
 	addListener() {
 		process.stdin.addListener('keypress', this.listener);
+		this.listenerAdded = true;
 	}
 
 	removeListener() {
 		process.stdin.removeListener('keypress', this.listener);
+		this.listenerAdded = false;
 	}
 
 	listener(char, key) {
