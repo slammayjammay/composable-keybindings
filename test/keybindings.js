@@ -19,7 +19,8 @@ module.exports = new Map([
 		name: 'delete',
 		keybindings: new Map([
 			['d', { name: 'delete-line' }],
-			['z', { name: 'i-take-priority' }]
+			['z', { name: 'i-take-priority' }],
+			['f', { name: 'filter-me' }]
 		]),
 		behavior: ({ interpret, done }, kb, key) => {
 			interpret((type, subKb, status) => {

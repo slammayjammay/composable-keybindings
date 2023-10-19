@@ -89,11 +89,15 @@ describe('Keybinder', () => {
 		});
 
 		it('accepts a filter argument when interpreting', (done) => {
-			keybinder.handleKeys(['d', 'y'], (type, kb, status) => {
+			const options = {
+				filter: action => action.name === 'filter-me'
+			};
+
+			Keybinder.handleKeys(['d', 'f'], keybindings, (type, kb, status) => {
 				assert.equal(status, STATUS.DONE);
-				assert.equal(type, 'cancel');
+				assert.equal(type, 'filtered');
 				done();
-			});
+			}, options);
 		});
 
 		it('prioritizes "keybindings" over "interprets", when both present', (done) => {

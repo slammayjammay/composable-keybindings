@@ -6,11 +6,13 @@ const getMapDiff = require('./utils/get-map-diff');
 const DEFAULTS = {
 	getKeybinding: (key, map) => map.get(key),
 	isKeyNumber: key => /\d/.test(key),
-	isKeyEscape: key => key === 'escape'
+	isKeyEscape: key => key === 'escape',
+	filter: () => {},
+	store: {}
 };
 
 class Interpreter {
-	constructor(map, doneCb, options = {}) {
+	constructor(map, doneCb = (() => {}), options = {}) {
 		this.map = map;
 		this.doneCb = doneCb;
 		this.options = { ...DEFAULTS, ...options };
@@ -19,7 +21,7 @@ class Interpreter {
 		this.interpret = this.interpret.bind(this);
 		this.done = this.done.bind(this);
 
-		this.kb = new Keybinding({ store: this.options.store || {} });
+		this.kb = new Keybinding({ store: this.options.store });
 
 		this.cds = [{ action: null }];
 		this.keyReader = this.interpreter = null;
@@ -138,7 +140,7 @@ class Interpreter {
 		};
 
 		const { store } = this.kb;
-		this.interpreter = new Interpreter(this.map, doneCb, { ...this.options, store, filter });
+		this.interpreter = new Interpreter(this.map, doneCb, { ...this.options, store });
 	}
 
 	done(type = 'keybinding', data = this.getCurrentAction(), status) {
@@ -153,6 +155,7 @@ class Interpreter {
 	// - keybinding
 	// - unrecognized
 	// - cancel
+	// - filtered
 	onDone(type, data, status = STATUS.DONE) {
 		this.status = status;
 
@@ -207,7 +210,7 @@ class Interpreter {
 		this.interpreter && this.interpreter.cdToRoot();
 		this.interpreter && this.interpreter.destroy();
 
-		this.map = this.store = this.doneCb = this.filter = null;
+		this.map = this.store = this.doneCb = null;
 		this.kb = null;
 		this.keyReader = this.interpreter = null;
 	}
