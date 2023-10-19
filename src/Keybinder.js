@@ -4,6 +4,7 @@ class Keybinder {
 	static handleKeys(keys, ...args) {
 		const keybinder = new this(...args);
 		keys.forEach(key => keybinder.handleKey(key));
+		return keybinder;
 	}
 
 	constructor(map, cb, options) {
