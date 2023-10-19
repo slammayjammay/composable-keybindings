@@ -67,7 +67,7 @@ class Interpreter {
 		} else if (!action) {
 			this.onUnrecognized(this.kb);
 		} else if (this.options.filter && !this.options.filter(action)) {
-			this.onDone('unrecognized', action);
+			this.onDone('unrecognized');
 		} else {
 			this.kb.action = action;
 
@@ -88,7 +88,7 @@ class Interpreter {
 	}
 
 	onUnrecognized(kb) {
-		this.onDone('unrecognized', kb);
+		this.onDone('unrecognized');
 	}
 
 	onNeedsKey(action) {
@@ -146,21 +146,21 @@ class Interpreter {
 		this.interpreter = new Interpreter(this.map, doneCb, { ...this.options, store, filter });
 	}
 
-	done(type = 'keybinding', data = this.getCurrentAction(), status = STATUS.DONE) {
+	done(type = 'keybinding', status = STATUS.DONE) {
 		// support done('resume') or done(STATUS.WAITING)
 		if (type === STATUS.WAITING || type === 'resume') {
 			type = 'keybinding';
 			status = STATUS.WAITING;
 		}
 
-		this.onDone(type, data, status);
+		this.onDone(type, status);
 	}
 
 	// types
 	// - keybinding
 	// - unrecognized
 	// - cancel
-	onDone(type = 'keybinding', data = this.getCurrentAction(), status = STATUS.DONE) {
+	onDone(type = 'keybinding', status = STATUS.DONE) {
 		this.status = status;
 
 		if (this.status === STATUS.DONE) {

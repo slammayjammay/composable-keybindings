@@ -80,7 +80,7 @@ describe('Keybinder', () => {
 
 		it('accepts a filter argument when interpreting', (done) => {
 			Keybinder.handleKeys(['d', 'q'], keybindings, (type, kb) => {
-				assert.equal(type, 'cancel');
+				assert.equal(type, 'unrecognized');
 				done();
 			});
 		});

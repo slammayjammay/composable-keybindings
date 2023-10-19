@@ -26,8 +26,8 @@ export default new Map([
 		]),
 		behavior: ({ interpret, done }, kb) => {
 			interpret((type, subKb) => {
-				if (type !== 'keybinding' || !['textObject', 'motion'].includes(subKb.action.type)) {
-					return done('cancel');
+				if (type !== 'keybinding') {
+					return done(type);
 				}
 
 				kb.store[subKb.action.type] = subKb.action.name;
