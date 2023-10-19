@@ -57,17 +57,4 @@ function myListener(type, keybinding, status) {
   ```
 </details>
 
-## Key map
-
-
-
-
-
-
-
-
-
-
-
-
-#
+TODO: explain better, host playground on gh-pages
