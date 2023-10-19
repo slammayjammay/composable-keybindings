@@ -1,6 +1,6 @@
-import { Keybinder } from '../../src';
-import formatKeyboardEvent from '../../src/utils/format-keyboard-event';
-import keybindings from '../keybindings';
+import { Keybinder } from '../../src/index.js';
+import formatKeyboardEvent from '../../src/utils/format-keyboard-event.js';
+import keybindings from '../keybindings.js';
 
 class Playground {
 	constructor() {
@@ -8,7 +8,6 @@ class Playground {
 		this.onKeybinding = this.onKeybinding.bind(this);
 
 		this.keybinder = new Keybinder(keybindings, this.onKeybinding, {
-			getKeybinding: (key, map) => map.get(formatKeyboardEvent.toString(key)),
 			isKeyNumber: key => /\d/.test(key.key),
 			isKeyEscape: key => key.key === 'Escape'
 		});
@@ -19,7 +18,11 @@ class Playground {
 	}
 
 	onKeypress(event) {
-		this.keybinder.handleKey(event);
+		if (['Shift', 'Control', 'Meta', 'Alt'].includes(event.key)) {
+			return;
+		}
+
+		this.keybinder.handleKey(formatKeyboardEvent.toString(event));
 
 		if (event.key === 'k' && event.metaKey) {
 			this.clear();

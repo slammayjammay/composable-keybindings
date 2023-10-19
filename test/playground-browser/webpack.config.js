@@ -1,8 +1,12 @@
-module.exports = {
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+const base = dirname(fileURLToPath(import.meta.url));
+
+export default {
 	mode: process.env.NODE_ENV || 'development',
-	entry: `${__dirname}/index.js`,
+	entry: `${base}/index.js`,
 	output: {
-		path: `${__dirname}/built`,
+		path: `${base}/built`,
 		filename: 'index.js'
 	}
 };
