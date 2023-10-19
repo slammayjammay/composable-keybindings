@@ -3,7 +3,7 @@ import Interpreter from './Interpreter.js';
 class Keybinder {
 	static handleKeys(keys, ...args) {
 		const keybinder = new this(...args);
-		keys.forEach(key => keybinder.handleKey(key));
+		keybinder.handleKeys(keys);
 		return keybinder;
 	}
 
@@ -17,8 +17,8 @@ class Keybinder {
 		return this.interpreter.handleKey(key);
 	}
 
-	handleKeys(keys, cb) {
-		return this.constructor.handleKeys(keys, new Map([...this.originalMap]), cb);
+	handleKeys(keys) {
+		return this.interpreter.handleKeys(keys);
 	}
 
 	destroy() {

@@ -19,18 +19,17 @@ export default new Map([
 		name: 'delete',
 		keybindings: new Map([
 			['d', { name: 'delete-line' }],
-			['z', { name: 'i-take-priority' }],
-			['f', { name: 'filter-me' }]
+			['z', { name: 'i-take-priority' }]
 		]),
 		behavior: ({ interpret, done }, kb, key) => {
 			interpret((type, subKb, status) => {
-				if (type !== 'keybinding') {
+				if (type !== 'keybinding' || !['textObject', 'motion'].includes(subKb.action.type)) {
 					return done('cancel');
 				}
 
-				kb.store[subKb.action.type] = kb.name;
+				kb.store[subKb.action.type] = subKb.action.name;
 				done();
-			}, kb => !['textObject', 'motion'].includes(kb.type));
+			});
 		},
 		interprets: new Map([
 			['z', { name: 'i-dont-take-priority' }],

@@ -7,7 +7,6 @@ const DEFAULTS = {
 	getKeybinding: (key, map) => map.get(key),
 	isKeyNumber: key => /\d/.test(key),
 	isKeyEscape: key => key === 'escape',
-	filter: () => {},
 	store: {}
 };
 
@@ -33,6 +32,10 @@ class Interpreter {
 		this.cdToRoot();
 		this.status = STATUS.WAITING;
 		this.kb = new Keybinding();
+	}
+
+	handleKeys(keys) {
+		keys.forEach(key => this.handleKey(key));
 	}
 
 	handleKey(key) {
@@ -62,8 +65,6 @@ class Interpreter {
 			this.onNumber(key);
 		} else if (!action) {
 			this.onUnrecognized(key);
-		} else if (this.options.filter && this.options.filter(action)) {
-			this.onFiltered(action);
 		} else if (action.keybindings instanceof Map && typeof action.behavior === 'function') {
 			this.onNeedsKey(action);
 		} else if (action.keybindings instanceof Map) {
@@ -81,10 +82,6 @@ class Interpreter {
 
 	onUnrecognized(key) {
 		this.onDone('unrecognized', key);
-	}
-
-	onFiltered(action) {
-		this.onDone('filtered', action);
 	}
 
 	onNeedsKey(action) {
@@ -112,9 +109,9 @@ class Interpreter {
 	onBehavior(action) {
 		this.status = STATUS.WAITING;
 		this.cdIntoAction(action);
+		this.kb.action = action;
 		const { read, interpret, done } = this;
-		const lastKey = this.kb.keys[this.kb.keys.length - 1];
-		action.behavior({ read, interpret, done }, this.kb, lastKey);
+		action.behavior({ read, interpret, done }, this.kb);
 		// TODO: check if return value is promise
 	}
 
@@ -128,7 +125,7 @@ class Interpreter {
 		});
 	}
 
-	interpret(cb, filter) {
+	interpret(cb) {
 		this.status = STATUS.IS_INTERPRETING;
 
 		const doneCb = (...args) => {
@@ -155,7 +152,6 @@ class Interpreter {
 	// - keybinding
 	// - unrecognized
 	// - cancel
-	// - filtered
 	onDone(type, data, status = STATUS.DONE) {
 		this.status = status;
 
@@ -165,7 +161,7 @@ class Interpreter {
 		}
 
 		if (this.status === STATUS.DONE) {
-			this.doneCb(type, data, this.status);
+			this.doneCb(type, data);
 			this.reset();
 		}
 	}
