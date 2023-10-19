@@ -15,21 +15,24 @@ export default new Map([
 			});
 		}
 	}],
+	['q', {
+		name: 'delete-filter-me',
+	}],
 	['d', {
 		name: 'delete',
 		keybindings: new Map([
 			['d', { name: 'delete-line' }],
 			['z', { name: 'i-take-priority' }]
 		]),
-		behavior: ({ interpret, done }, kb, key) => {
-			interpret((type, subKb, status) => {
+		behavior: ({ interpret, done }, kb) => {
+			interpret((type, subKb) => {
 				if (type !== 'keybinding' || !['textObject', 'motion'].includes(subKb.action.type)) {
 					return done('cancel');
 				}
 
 				kb.store[subKb.action.type] = subKb.action.name;
 				done();
-			});
+			}, action => ['textObject', 'motion'].includes(action.type));
 		},
 		interprets: new Map([
 			['z', { name: 'i-dont-take-priority' }],

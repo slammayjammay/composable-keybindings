@@ -78,6 +78,13 @@ describe('Keybinder', () => {
 			});
 		});
 
+		it('accepts a filter argument when interpreting', (done) => {
+			Keybinder.handleKeys(['d', 'q'], keybindings, (type, kb) => {
+				assert.equal(type, 'cancel');
+				done();
+			});
+		});
+
 		it('prioritizes "keybindings" over "interprets", when both present', (done) => {
 			Keybinder.handleKeys(['d', 'z'], keybindings, (type, kb) => {
 				assert.equal(type, 'keybinding');

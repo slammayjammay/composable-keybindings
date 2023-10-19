@@ -7,7 +7,8 @@ const DEFAULTS = {
 	getKeybinding: (key, map) => map.get(key),
 	isKeyNumber: key => /\d/.test(key),
 	isKeyEscape: key => key === 'escape',
-	store: {}
+	store: {},
+	filter: null
 };
 
 class Interpreter {
@@ -64,15 +65,21 @@ class Interpreter {
 		if (this.options.isKeyNumber(key) && !(this.kb.countChars.length === 0 && action)) {
 			this.onNumber(key);
 		} else if (!action) {
-			this.onUnrecognized(key);
-		} else if (action.keybindings instanceof Map && typeof action.behavior === 'function') {
-			this.onNeedsKey(action);
-		} else if (action.keybindings instanceof Map) {
-			this.onKeybindingMap(action);
-		} else if (typeof action.behavior === 'function') {
-			this.onBehavior(action);
+			this.onUnrecognized(this.kb);
+		} else if (this.options.filter && !this.options.filter(action)) {
+			this.onDone('unrecognized', action);
 		} else {
-			this.onDone('keybinding', action);
+			this.kb.action = action;
+
+			if (action.keybindings instanceof Map && typeof action.behavior === 'function') {
+				this.onNeedsKey(action);
+			} else if (action.keybindings instanceof Map) {
+				this.onKeybindingMap(action);
+			} else if (typeof action.behavior === 'function') {
+				this.onBehavior(action);
+			} else {
+				this.onDone('keybinding');
+			}
 		}
 	}
 
@@ -80,8 +87,8 @@ class Interpreter {
 		this.kb.addCountChar(key);
 	}
 
-	onUnrecognized(key) {
-		this.onDone('unrecognized', key);
+	onUnrecognized(kb) {
+		this.onDone('unrecognized', kb);
 	}
 
 	onNeedsKey(action) {
@@ -109,7 +116,6 @@ class Interpreter {
 	onBehavior(action) {
 		this.status = STATUS.WAITING;
 		this.cdIntoAction(action);
-		this.kb.action = action;
 		const { read, interpret, done } = this;
 		action.behavior({ read, interpret, done }, this.kb);
 		// TODO: check if return value is promise
@@ -125,7 +131,7 @@ class Interpreter {
 		});
 	}
 
-	interpret(cb) {
+	interpret(cb, filter) {
 		this.status = STATUS.IS_INTERPRETING;
 
 		const doneCb = (...args) => {
@@ -137,13 +143,15 @@ class Interpreter {
 		};
 
 		const { store } = this.kb;
-		this.interpreter = new Interpreter(this.map, doneCb, { ...this.options, store });
+		this.interpreter = new Interpreter(this.map, doneCb, { ...this.options, store, filter });
 	}
 
-	done(type = 'keybinding', data = this.getCurrentAction(), status) {
-		status = status || {
-			resume: STATUS.WAITING
-		}[type];
+	done(type = 'keybinding', data = this.getCurrentAction(), status = STATUS.DONE) {
+		// support done('resume') or done(STATUS.WAITING)
+		if (type === STATUS.WAITING || type === 'resume') {
+			type = 'keybinding';
+			status = STATUS.WAITING;
+		}
 
 		this.onDone(type, data, status);
 	}
@@ -152,16 +160,11 @@ class Interpreter {
 	// - keybinding
 	// - unrecognized
 	// - cancel
-	onDone(type, data, status = STATUS.DONE) {
+	onDone(type = 'keybinding', data = this.getCurrentAction(), status = STATUS.DONE) {
 		this.status = status;
 
-		if (type === 'keybinding') {
-			this.kb.action = data;
-			data = this.kb;
-		}
-
 		if (this.status === STATUS.DONE) {
-			this.doneCb(type, data);
+			this.doneCb(type, this.kb);
 			this.reset();
 		}
 	}
