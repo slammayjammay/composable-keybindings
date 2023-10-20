@@ -21,5 +21,7 @@ class Playground {
 	}
 }
 
-console.log('-- Playground Mode --');
 new Playground();
+
+console.log('Press keys to log keybinding events.');
+console.log('Keybinding map found in test/keybindings.js');

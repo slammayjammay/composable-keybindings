@@ -1,12 +1,14 @@
 <!doctype html>
-<html style="margin: 0;">
+<html>
 	<head>
 		<title>Playground</title>
 	</head>
 
-	<body style="margin: 0;">
-		<button id="clear" style="position: fixed; top: 10px; right: 10px;">clear</button>
-		<div id="console" style="overflow: scroll; height: 100vh;"></div>
+	<body>
+		<h1>Playground</h1>
+		<p>Press keys to log keybinding events. Uses <a href="https://github.com/slammayjammay/composable-keybindings/blob/master/test/keybindings.js">this keybinding map</a>.</p>
+		<p><button id="clear">clear</button></p>
+		<div id="console" style="overflow: scroll; max-height: 90vh;"></div>
 		<script src="./built/index.js"></script>
 	</body>
 </html>

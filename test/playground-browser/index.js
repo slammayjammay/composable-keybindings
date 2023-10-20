@@ -7,10 +7,7 @@ class Playground {
 		this.onKeypress = this.onKeypress.bind(this);
 		this.onKeybinding = this.onKeybinding.bind(this);
 
-		this.keybinder = new Keybinder(keybindings, this.onKeybinding, {
-			isKeyNumber: key => /\d/.test(key.key),
-			isKeyEscape: key => key.key === 'Escape'
-		});
+		this.keybinder = new Keybinder(keybindings, this.onKeybinding);
 
 		window.addEventListener('keydown', this.onKeypress);
 		this.div = document.querySelector('#console');
@@ -34,8 +31,7 @@ class Playground {
 
 		this.div.append(document.createElement('hr'));
 		const pre = document.createElement('pre');
-		const formatted = type === 'keybinding' ? this.formatKb(kb) : kb;
-		pre.textContent = `"${type}" -- ${formatted}`;
+		pre.textContent = `"${type}" -- ${this.formatKb(kb)}`;
 		this.div.append(pre);
 
 		isAtBottom && this.div.scrollTo(0, this.div.scrollHeight);
@@ -55,5 +51,4 @@ class Playground {
 	}
 }
 
-console.log('-- Playground Mode --');
 new Playground();
