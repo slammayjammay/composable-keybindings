@@ -124,9 +124,9 @@ keybinder.handleKeys(['g', 'x', 'y', 'z']);
 
 The function takes in an instructions API and the current keybinding that's
 being generated. 3 instructions are available:
-- [read](#instructions-read)
-- [interpret](#instructions-interpret)
-- [done](#instructions-done)
+- [read](#instructionsread)
+- [interpret](#instructionsinterpret)
+- [done](#instructionsdone)
 
 `instructions.done()` must be called to complete the behavior function.
 
@@ -275,7 +275,7 @@ inside the keybinding map.
 - `store`: any associated data to be attached to keybinding events (used
   internally).
 - `filter`: a function to filter out unwanted keybindings (used internally),
-  see [instructions.interpret()](#instructions-interpret).
+  see [instructions.interpret()](#instructionsinterpret).
 
 ## Keypress listeners
 
@@ -296,3 +296,7 @@ these.
 
 There is also a [Node listener](src/utils/NodeListener.js) to help with the
 boilerplate of keypress in Node.
+
+## Playground
+
+[Playground](https://slammayjammay.github.io/composable-keybindings/test/playground-browser/)
