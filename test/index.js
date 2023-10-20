@@ -103,6 +103,13 @@ describe('Keybinder', () => {
 	});
 
 	describe('"interprets" map', () => {
+		it('does not allow interprets recursion', (done) => {
+			Keybinder.handleKeys(['w', 'w'], keybindings, (type, kb) => {
+				assert.equal(type, 'cancel');
+				done();
+			});
+		});
+
 		it('is recognized', () => {
 			return Promise.all([
 				new Promise(resolve => {

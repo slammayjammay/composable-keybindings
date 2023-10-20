@@ -15,6 +15,11 @@ export default new Map([
 			});
 		}
 	}],
+	['w', {
+		behavior: ({ interpret, done }) => {
+			interpret((type, kb) => done());
+		}
+	}],
 	['q', {
 		name: 'delete-filter-me',
 	}],

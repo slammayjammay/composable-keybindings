@@ -55,7 +55,13 @@ class Interpreter {
 		} else if (this.status === STATUS.IS_READING) {
 			this.keyReader.handleKey(key);
 		} else if (this.status === STATUS.IS_INTERPRETING) {
-			this.interpreter.handleKey(key);
+			const action = this.options.getKeybinding(key, this.map);
+			if (action === this.getCurrentAction()) {
+				this.interpreter = this.interpreter.destroy();
+				this.onDone('cancel');
+			} else {
+				this.interpreter.handleKey(key);
+			}
 		}
 	}
 
@@ -136,9 +142,7 @@ class Interpreter {
 
 		const doneCb = (...args) => {
 			this.status = STATUS.WAITING;
-			this.interpreter.cdToRoot();
-			this.interpreter.destroy();
-			this.interpreter = null;
+			this.interpreter = this.interpreter.destroy();
 			cb(...args);
 		};
 
@@ -146,9 +150,11 @@ class Interpreter {
 		this.interpreter = new Interpreter(this.map, doneCb, { ...this.options, store, filter });
 	}
 
-	done(type = 'keybinding', status = STATUS.DONE) {
+	done(flag = 'keybinding') {
+		let type = flag, status = STATUS.DONE;
+
 		// support done('resume') or done(STATUS.WAITING)
-		if (type === STATUS.WAITING || type === 'resume') {
+		if (flag === STATUS.WAITING || flag === 'resume') {
 			type = 'keybinding';
 			status = STATUS.WAITING;
 		}
@@ -205,6 +211,8 @@ class Interpreter {
 	}
 
 	destroy() {
+		this.cdToRoot();
+
 		this.keyReader && this.keyReader.destroy();
 		this.interpreter && this.interpreter.cdToRoot();
 		this.interpreter && this.interpreter.destroy();
