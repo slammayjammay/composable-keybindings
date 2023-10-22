@@ -13,12 +13,20 @@ export default new Map([
 				kb.store.find = keys[0];
 				done();
 			});
-		}
+		},
+		keybindings: new Map([['f', { name: 'find-keybinding-priority' }]])
 	}],
 	['w', {
+		name: 'w',
 		behavior: ({ interpret, done }) => {
 			interpret((type, kb) => done());
-		}
+		},
+		keybindings: new Map([
+			['a', { behavior: ({ done }) => done('keybinding') }],
+			['b', { behavior: ({ done }) => done('unrecognized') }],
+			['c', { behavior: ({ done }) => done('cancel') }],
+			['d', { behavior: ({ done }) => done('resume') }]
+		])
 	}],
 	['q', {
 		name: 'delete-filter-me',
@@ -58,10 +66,23 @@ export default new Map([
 	}],
 	['y', {
 		name: 'yank',
+		type: 'motion',
 		keybindings: new Map([
 			['y', { name: 'yank-line' }],
-			['z', { name: 'zzzzzzzzzzzz' }],
-		])
+			['z', {
+				name: 'zzz',
+				keybindings: new Map([['t', { name: 'yzt' }]])
+			}]
+		]),
+		behavior: ({ interpret, done }, kb) => {
+			interpret((type, subkb) => {
+				if (type !== 'keybinding') {
+					return done(type);
+				}
+				kb.store.yank = subkb;
+				done();
+			});
+		}
 	}],
 	['i', { name: 'insert' }],
 	['j', { name: 'cursor-down', type: 'motion' }],

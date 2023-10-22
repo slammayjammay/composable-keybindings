@@ -7,8 +7,8 @@ const DEFAULTS = {
 	getKeybinding: (key, map) => map.get(key),
 	isKeyNumber: key => /\d/.test(key),
 	isKeyEscape: key => key === 'escape',
-	store: {},
-	filter: null
+	store: null, // {}
+	filter: null // function
 };
 
 class Interpreter {
@@ -21,7 +21,7 @@ class Interpreter {
 		this.interpret = this.interpret.bind(this);
 		this.done = this.done.bind(this);
 
-		this.kb = new Keybinding({ store: this.options.store });
+		this.kb = new Keybinding({ store: this.options.store || {} });
 
 		this.cds = [{ action: null }];
 		this.keyReader = this.interpreter = null;
@@ -33,6 +33,11 @@ class Interpreter {
 		this.cdToRoot();
 		this.status = STATUS.WAITING;
 		this.kb = new Keybinding();
+	}
+
+	cancel() {
+		this.reset();
+		this.onDone('cancel');
 	}
 
 	handleKeys(keys) {
@@ -73,7 +78,7 @@ class Interpreter {
 		} else if (!action) {
 			this.onUnrecognized(this.kb);
 		} else if (this.options.filter && !this.options.filter(action)) {
-			this.onDone('unrecognized');
+			this.onDone('cancel');
 		} else {
 			this.kb.action = action;
 
@@ -124,7 +129,6 @@ class Interpreter {
 		this.cdIntoAction(action);
 		const { read, interpret, done } = this;
 		action.behavior({ read, interpret, done }, this.kb);
-		// TODO: check if return value is promise
 	}
 
 	read(count, cb) {

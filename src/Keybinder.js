@@ -21,6 +21,10 @@ class Keybinder {
 		return this.interpreter.handleKeys(keys);
 	}
 
+	cancel() {
+		this.interpreter.cancel();
+	}
+
 	destroy() {
 		this.interpreter.destroy();
 		this.interpreter = null;
