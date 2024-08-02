@@ -19,7 +19,7 @@ export default new Map([
 	['w', {
 		name: 'w',
 		behavior: ({ interpret, done }) => {
-			interpret((type, kb) => done());
+			interpret(done);
 		},
 		keybindings: new Map([
 			['a', { behavior: ({ done }) => done('keybinding') }],
@@ -61,6 +61,17 @@ export default new Map([
 			}],
 			['[', {
 				name: 'i-am-not-root'
+			}]
+		])
+	}],
+	['x', {
+		name: 'x',
+		keybindings: new Map([
+			['c', {
+				name: 'c',
+				keybindings: new Map([
+					['v', { name: 'v' }]
+				])
 			}]
 		])
 	}],

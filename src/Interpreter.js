@@ -32,7 +32,7 @@ class Interpreter {
 	reset() {
 		this.cdToRoot();
 		this.status = STATUS.WAITING;
-		this.kb = new Keybinding();
+		this.kb = new Keybinding({ store: this.options.store || {} });
 	}
 
 	cancel() {
@@ -60,13 +60,7 @@ class Interpreter {
 		} else if (this.status === STATUS.IS_READING) {
 			this.keyReader.handleKey(key);
 		} else if (this.status === STATUS.IS_INTERPRETING) {
-			const action = this.options.getKeybinding(key, this.map);
-			if (action === this.getCurrentAction()) {
-				this.interpreter = this.interpreter.destroy();
-				this.onDone('cancel');
-			} else {
-				this.interpreter.handleKey(key);
-			}
+			this.interpreter.handleKey(key);
 		}
 	}
 
@@ -83,11 +77,12 @@ class Interpreter {
 			this.kb.action = action;
 
 			if (action.keybindings instanceof Map && typeof action.behavior === 'function') {
-				this.onNeedsKey(action);
+				this.onNeedsKey(key);
 			} else if (action.keybindings instanceof Map) {
-				this.onKeybindingMap(action);
+				this.onKeybindingMap(key);
 			} else if (typeof action.behavior === 'function') {
-				this.onBehavior(action);
+				this.cdInto(key);
+				this.onBehavior();
 			} else {
 				this.onDone('keybinding');
 			}
@@ -102,31 +97,30 @@ class Interpreter {
 		this.onDone('unrecognized');
 	}
 
-	onNeedsKey(action) {
+	onNeedsKey(key) {
 		this.status = STATUS.NEEDS_KEY;
-		this.cdIntoAction(action);
+		this.cdInto(key);
 	}
 
 	onNeededKey(key) {
 		const action = this.getCurrentAction();
 
 		if (action.keybindings instanceof Map && action.keybindings.has(key)) {
-			this.onKeybindingMap(action);
+			this.status = STATUS.WAITING;
 		} else if (typeof action.behavior === 'function') {
-			this.onBehavior(action);
+			this.onBehavior();
 		}
 
 		this.handleKey(key);
 	}
 
-	onKeybindingMap(action) {
+	onKeybindingMap(key) {
 		this.status = STATUS.WAITING;
-		this.cdIntoAction(action);
+		this.cdInto(key);
 	}
 
-	onBehavior(action) {
+	onBehavior(action = this.getCurrentAction()) {
 		this.status = STATUS.WAITING;
-		this.cdIntoAction(action);
 		const { read, interpret, done } = this;
 		action.behavior({ read, interpret, done }, this.kb);
 	}
@@ -179,7 +173,9 @@ class Interpreter {
 		}
 	}
 
-	cdIntoAction(action) {
+	cdInto(key) {
+		const action = this.options.getKeybinding(key, this.map);
+
 		if (this.getCurrentAction() === action) {
 			return;
 		}
@@ -189,9 +185,11 @@ class Interpreter {
 
 		const [replaced, added] = getMapDiff(this.map, ...maps);
 
+		const removed = new Map([[key, action]]);
+		this.map.delete(key);
 		maps.forEach(map => map.forEach((val, key) => this.map.set(key, val)));
 
-		this.cds.push({ action, replaced, added });
+		this.cds.push({ action, replaced, added, removed });
 	}
 
 	getCurrentAction() {
@@ -199,10 +197,11 @@ class Interpreter {
 	}
 
 	cdUp() {
-		const { action, replaced, added } = this.cds.pop();
+		const { action, replaced, added, removed } = this.cds.pop();
 
 		replaced.forEach((val, key) => this.map.set(key, val));
 		added.forEach((_, key) => this.map.delete(key));
+		removed.forEach((val, key) => this.map.set(key, val));
 
 		replaced.clear();
 		added.clear();
