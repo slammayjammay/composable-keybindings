@@ -88,7 +88,6 @@ describe('Keybinder', () => {
 		});
 
 		it('does not get stuck in nested keybindings', done => {
-			return done();
 			let flag = false;
 			Keybinder.handleKeys(['y', 'z', 'z'], keybindings, (type, kb) => {
 				flag = true;
