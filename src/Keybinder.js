@@ -30,7 +30,6 @@ export default class Keybinder {
 
 	destroy = () => {
 		this.interpreter.destroy();
-		this.map.clear();
 		this.interpreter = this.map = null;
 	}
 }
