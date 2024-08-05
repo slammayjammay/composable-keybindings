@@ -156,6 +156,37 @@ describe('Keybinder', () => {
 		});
 	});
 
+	describe('instructions.emit', () => {
+		it('calls listener callback without resetting map', done => {
+			const keybinder = new Keybinder(keybindings, (type, kb) => {
+				assert.equal(type, 'keybinding');
+				assert.equal(kb.action.name, 'not-delete');
+				assert.equal(keybindings.get('d').name, 'not-delete');
+				keybinder.reset();
+				done();
+			});
+
+			keybinder.handleKeys(['x', 'd']);
+		});
+
+		it('interpret can be called until done() is called', done => {
+			const emits = [];
+
+			const onDone = () => {
+				const notDelete = { type: 'keybinding', name: 'not-delete' };
+				const exit = { type: 'keybinding', name: 'exit' };
+				const cancel = { type: 'cancel', name: 'x' };
+				assert.deepEqual(emits, [notDelete, notDelete, exit, cancel]);
+				done();
+			};
+
+			Keybinder.handleKeys(['x', 'd', 'd', 'f'], keybindings, (type, kb) => {
+				emits.push({ type, name: kb.action?.name });
+				type === 'cancel' && onDone();
+			});
+		});
+	});
+
 	describe('instructions.done', () => {
 		it('calling with no arguments or \'keybinding\' emits "keybinding"', done => {
 			Keybinder.handleKeys(['w', 'q'], keybindings, (type, kb) => {

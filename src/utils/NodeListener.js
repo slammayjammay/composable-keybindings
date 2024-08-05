@@ -12,8 +12,6 @@ export default class NodeListener {
 		this.cb = cb;
 		this.options = { ...DEFAULTS, ...options };
 
-		this.listener = this.listener.bind(this);
-
 		this.listenerAdded = false;
 
 		emitKeypressEvents(process.stdin, {
@@ -31,29 +29,29 @@ export default class NodeListener {
 		});
 	}
 
-	start() {
+	start = () => {
 		!process.stdin.isRaw && process.stdin.setRawMode(true);
 		process.stdin.isPaused() && process.stdin.resume();
 		!this.listenerAdded && this.addListener();
 	}
 
-	end() {
+	end = () => {
 		this.removeListener();
 		process.stdin.isRaw && process.stdin.setRawMode(false);
 		!process.stdin.isPaused() && process.stdin.pause();
 	}
 
-	addListener() {
+	addListener = () => {
 		process.stdin.addListener('keypress', this.listener);
 		this.listenerAdded = true;
 	}
 
-	removeListener() {
+	removeListener = () => {
 		process.stdin.removeListener('keypress', this.listener);
 		this.listenerAdded = false;
 	}
 
-	listener(char, key) {
+	listener = (char, key) => {
 		if (key.sequence === '\u0003') {
 			process.kill(process.pid, 'SIGINT'); // ctrl+c
 		} else if (key.sequence === '\u001a') {
@@ -67,7 +65,7 @@ export default class NodeListener {
 		}
 	}
 
-	destroy() {
+	destroy = () => {
 		this.cb = this.options = null;
 	}
 };

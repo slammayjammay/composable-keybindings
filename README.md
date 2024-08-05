@@ -126,6 +126,7 @@ The function takes in an instructions API and the current keybinding that's
 being generated. 3 instructions are available:
 - [read](#instructionsread)
 - [interpret](#instructionsinterpret)
+- [emit](#instructionsemit)
 - [done](#instructionsdone)
 
 `instructions.done()` must be called to complete the behavior function.
@@ -213,6 +214,11 @@ new Map([
 ])
 ```
 
+#### `instructions.emit`
+
+Calls the listener function given with the given arguments. Similar to
+`instructions.done` but doesn't reset the key map.
+
 #### `instructions.done`
 
 Must be called to signal the behavior function is finished. If this keybinding
@@ -220,12 +226,16 @@ is being "interpreted" by another behavior function, calling this will bubble
 up to the parent's `interpret()` callback function, otherwise an event will
 emitted with type either `'keybinding'`, `'unrecognized'`, or `'cancel'`.
 
-Optionally takes in an argument:
-- `'unrecognized'` -- Signifiy that the current keybinding being generated
-  should end and no keybinding event should emit.
-- `'cancel'` -- Same as `'unrecognized'` with slightly different nuance.
-- `'resume'` or `1` -- Avoid emitting a keybinding event and continue building
-  on the current generated keybinding object.
+Optionally takes an options object:
+- `type`: `'keybinding'`, `'unrecognized'`, or `'cancel'` (default
+  `'keybinding'`)
+- `status`: one of the status [enums](src/status.js) (default `STATUS.DONE`)
+
+If a string is given instead of an options object, it represents `type`.
+
+`type` can also be `'resume'` or `STATUS.WAITING`, which will avoid emitting a
+keybinding event and continue building on the current generated keybinding
+object.
 
 ### Keybinding store
 

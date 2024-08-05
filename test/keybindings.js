@@ -66,13 +66,15 @@ export default new Map([
 	}],
 	['x', {
 		name: 'x',
-		keybindings: new Map([
-			['c', {
-				name: 'c',
-				keybindings: new Map([
-					['v', { name: 'v' }]
-				])
-			}]
+		behavior: ({ interpret, emit, done }) => {
+			interpret((type, kb) => {
+				emit(type, kb);
+				kb.action?.name === 'exit' && done('cancel');
+			});
+		},
+		interprets: new Map([
+			['d', { name: 'not-delete' }],
+			['f', { name: 'exit' }]
 		])
 	}],
 	['y', {

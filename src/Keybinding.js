@@ -7,8 +7,12 @@ export default class Keybinding {
 		this.count = 1;
 	}
 
-	addCountChar(char) {
+	addCountChar = (char) => {
 		this.countChars.push(char);
 		this.count = parseInt(this.countChars.join(''));
+	}
+
+	destroy = () => {
+		this.keys = this.countChars = this.action = this.store = this.count = null;
 	}
 }

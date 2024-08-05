@@ -1,36 +1,36 @@
 import Interpreter from './Interpreter.js';
 
-class Keybinder {
+export default class Keybinder {
 	static handleKeys(keys, ...args) {
 		const keybinder = new this(...args);
 		keybinder.handleKeys(keys);
 		return keybinder;
 	}
 
-	constructor(map, cb, options) {
-		this.originalMap = map ? map : new Map();
-		this.map = new Map([...this.originalMap]);
+	constructor(map = new Map(), cb, options) {
+		this.map = map;
 		this.interpreter = new Interpreter(this.map, cb, options);
 	}
 
-	handleKey(key) {
+	handleKey = (key) => {
 		return this.interpreter.handleKey(key);
 	}
 
-	handleKeys(keys) {
+	handleKeys = (keys) => {
 		return this.interpreter.handleKeys(keys);
 	}
 
-	cancel() {
+	cancel = () => {
 		this.interpreter.cancel();
 	}
 
-	destroy() {
+	reset = () => {
+		this.interpreter.reset();
+	}
+
+	destroy = () => {
 		this.interpreter.destroy();
-		this.interpreter = null;
 		this.map.clear();
-		this.map = this.originalMap = null;
+		this.interpreter = this.map = null;
 	}
 }
-
-export default Keybinder;

@@ -11,42 +11,36 @@ const DEFAULTS = {
 	filter: null // function
 };
 
-class Interpreter {
-	constructor(map, doneCb = (() => {}), options = {}) {
+export default class Interpreter {
+	constructor(map, listener = (() => {}), options = {}) {
 		this.map = map;
-		this.doneCb = doneCb;
+		this.listener = listener;
 		this.options = { ...DEFAULTS, ...options };
-
-		this.read = this.read.bind(this);
-		this.interpret = this.interpret.bind(this);
-		this.done = this.done.bind(this);
-
-		this.kb = new Keybinding({ store: this.options.store || {} });
 
 		this.cds = [{ action: null }];
 		this.keyReader = this.interpreter = null;
 
 		this.status = STATUS.WAITING;
+		this.kb = new Keybinding({ store: this.options.store || {} });
 	}
 
-	reset() {
+	reset = () => {
 		this.cdToRoot();
 		this.status = STATUS.WAITING;
 		this.kb = new Keybinding({ store: this.options.store || {} });
 	}
 
-	cancel() {
-		this.reset();
-		this.onDone('cancel');
+	cancel = () => {
+		this.onDone({ type: 'cancel' });
 	}
 
-	handleKeys(keys) {
+	handleKeys = (keys) => {
 		keys.forEach(key => this.handleKey(key));
 	}
 
-	handleKey(key) {
+	handleKey = (key) => {
 		if (this.options.isKeyEscape(key)) {
-			return this.onDone('cancel');
+			return this.onDone({ type: 'cancel' });
 		}
 
 		if (this.status === STATUS.NEEDS_KEY) {
@@ -64,7 +58,7 @@ class Interpreter {
 		}
 	}
 
-	onWaiting(key) {
+	onWaiting = (key) => {
 		const action = this.options.getKeybinding(key, this.map);
 
 		if (this.options.isKeyNumber(key) && !(this.kb.countChars.length === 0 && action)) {
@@ -72,7 +66,7 @@ class Interpreter {
 		} else if (!action) {
 			this.onUnrecognized(this.kb);
 		} else if (this.options.filter && !this.options.filter(action)) {
-			this.onDone('cancel');
+			this.onDone({ type: 'cancel' });
 		} else {
 			this.kb.action = action;
 
@@ -84,25 +78,25 @@ class Interpreter {
 				this.cdInto(key);
 				this.onBehavior();
 			} else {
-				this.onDone('keybinding');
+				this.onDone({ type: 'keybinding' });
 			}
 		}
 	}
 
-	onNumber(key) {
+	onNumber = (key) => {
 		this.kb.addCountChar(key);
 	}
 
-	onUnrecognized(kb) {
-		this.onDone('unrecognized');
+	onUnrecognized = (kb) => {
+		this.onDone({ type: 'unrecognized' });
 	}
 
-	onNeedsKey(key) {
+	onNeedsKey = (key) => {
 		this.status = STATUS.NEEDS_KEY;
 		this.cdInto(key);
 	}
 
-	onNeededKey(key) {
+	onNeededKey = (key) => {
 		const action = this.getCurrentAction();
 
 		if (action.keybindings instanceof Map && action.keybindings.has(key)) {
@@ -114,66 +108,80 @@ class Interpreter {
 		this.handleKey(key);
 	}
 
-	onKeybindingMap(key) {
+	onKeybindingMap = (key) => {
 		this.status = STATUS.WAITING;
 		this.cdInto(key);
 	}
 
-	onBehavior(action = this.getCurrentAction()) {
+	onBehavior = (action = this.getCurrentAction()) => {
 		this.status = STATUS.WAITING;
-		const { read, interpret, done } = this;
-		action.behavior({ read, interpret, done }, this.kb);
+		const { read, interpret, emit, done } = this;
+		action.behavior({ read, interpret, emit, done }, this.kb);
 	}
 
-	read(count, cb) {
+	read = (count, cb) => {
 		this.status = STATUS.IS_READING;
 		this.keyReader = new KeyReader(count, keys => {
 			this.status = STATUS.WAITING;
-			this.keyReader.destroy();
-			this.keyReader = null;
+			this.keyReader = this.keyReader.destroy();
 			cb(keys);
 		});
 	}
 
-	interpret(cb, filter) {
+	interpret = (cb, filter) => {
 		this.status = STATUS.IS_INTERPRETING;
-
-		const doneCb = (...args) => {
-			this.status = STATUS.WAITING;
-			this.interpreter = this.interpreter.destroy();
-			cb(...args);
-		};
-
 		const { store } = this.kb;
-		this.interpreter = new Interpreter(this.map, doneCb, { ...this.options, store, filter });
+		this.interpreter = new Interpreter(this.map, cb, { ...this.options, store, filter });
 	}
 
-	done(flag = 'keybinding') {
-		let type = flag, status = STATUS.DONE;
+	emit = (...args) => {
+		this.listener(...args);
+	}
 
-		// support done('resume') or done(STATUS.WAITING)
-		if (flag === STATUS.WAITING || flag === 'resume') {
-			type = 'keybinding';
-			status = STATUS.WAITING;
+	// accepts an object:
+	//   - type: type of event or a flag (see below)
+	//   - status: status of current keybinding
+	// if a string is given it represents the type.
+	// `type` can be an event type (see `onDone`) or one of these flags:
+	//   - resume: supports supplemental keybindings. if given, sets
+	//     type=keybinding and status=WAITING
+	done = (options) => {
+		this.keyReader = this.keyReader?.destroy();
+		this.interpreter = this.interpreter?.destroy();
+
+		const defaults = { type: 'keybinding', status: STATUS.DONE };
+		options ??= defaults;
+
+		if (typeof options === 'string') {
+			options = { ...defaults, type: options };
 		}
 
-		this.onDone(type, status);
+		let { type, status } = options;
+
+		if (typeof type === 'string') {
+			status = {
+				resume: STATUS.WAITING
+			}[type] || status;
+
+			type = {
+				resume: 'keybinding'
+			}[status] || type;
+		}
+
+		this.onDone({ type, status });
 	}
 
-	// types
-	// - keybinding
-	// - unrecognized
-	// - cancel
-	onDone(type = 'keybinding', status = STATUS.DONE) {
+	onDone = ({ type = 'keybinding', status = STATUS.DONE }) => {
 		this.status = status;
 
 		if (this.status === STATUS.DONE) {
-			this.doneCb(type, this.kb);
+			const kb = this.kb;
 			this.reset();
+			this.listener(type, kb);
 		}
 	}
 
-	cdInto(key) {
+	cdInto = (key) => {
 		const action = this.options.getKeybinding(key, this.map);
 
 		if (this.getCurrentAction() === action) {
@@ -192,11 +200,11 @@ class Interpreter {
 		this.cds.push({ action, replaced, added, removed });
 	}
 
-	getCurrentAction() {
+	getCurrentAction = () => {
 		return this.cds[this.cds.length - 1].action;
 	}
 
-	cdUp() {
+	cdUp = () => {
 		const { action, replaced, added, removed } = this.cds.pop();
 
 		replaced.forEach((val, key) => this.map.set(key, val));
@@ -207,23 +215,18 @@ class Interpreter {
 		added.clear();
 	}
 
-	cdToRoot() {
+	cdToRoot = () => {
 		while (this.cds.length > 1) {
 			this.cdUp();
 		}
 	}
 
-	destroy() {
-		this.cdToRoot();
-
+	destroy = () => {
 		this.keyReader && this.keyReader.destroy();
-		this.interpreter && this.interpreter.cdToRoot();
 		this.interpreter && this.interpreter.destroy();
 
-		this.map = this.store = this.doneCb = null;
+		this.map = this.store = this.listener = null;
 		this.kb = null;
 		this.keyReader = this.interpreter = null;
 	}
 }
-
-export default Interpreter;
