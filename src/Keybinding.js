@@ -11,8 +11,4 @@ export default class Keybinding {
 		this.countChars.push(char);
 		this.count = parseInt(this.countChars.join(''));
 	}
-
-	destroy = () => {
-		this.keys = this.countChars = this.action = this.store = this.count = null;
-	}
 }
