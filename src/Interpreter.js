@@ -11,6 +11,7 @@ const DEFAULTS = {
 	filter: null // function
 };
 
+// TODO: don't autobind methods
 export default class Interpreter {
 	constructor(map, listener = (() => {}), options = {}) {
 		this.map = map;
@@ -188,15 +189,26 @@ export default class Interpreter {
 			return;
 		}
 
-		const props = ['interprets', 'keybindings'];
-		const maps = props.map(p => action[p]).filter(m => m instanceof Map);
+		let removed = new Map(), added = new Map(), replaced = new Map();
 
-		const [replaced, added] = getMapDiff(this.map, ...maps);
+		// if behavior function is present, keep all ancestor keybindings
+		// available to interpret.
+		// otherwise if keybindings map present, delete all ancestor keybindings
+		// and whitelist only the given keybindings
+		if (typeof action.behavior === 'function') {
+			const props = ['interprets', 'keybindings'];
+			const maps = props.map(p => action[p]).filter(m => m instanceof Map);
+			removed.set(key, action);
+			this.map.delete(key);
+			[replaced, added] = getMapDiff(this.map, ...maps);
+			maps.forEach(map => map.forEach((val, key) => this.map.set(key, val)));
+		} else if (action.keybindings instanceof Map) {
+			removed = new Map([...this.map]);
+			added = new Map([...action.keybindings]);
+		}
 
-		const removed = new Map([[key, action]]);
-		this.map.delete(key);
-		maps.forEach(map => map.forEach((val, key) => this.map.set(key, val)));
-
+		removed.forEach((_, key) => this.map.delete(key));
+		added.forEach((val, key) => this.map.set(key, val));
 		this.cds.push({ action, replaced, added, removed });
 	}
 
@@ -207,9 +219,8 @@ export default class Interpreter {
 	cdUp = () => {
 		const { action, replaced, added, removed } = this.cds.pop();
 
-		replaced.forEach((val, key) => this.map.set(key, val));
 		added.forEach((_, key) => this.map.delete(key));
-		removed.forEach((val, key) => this.map.set(key, val));
+		[replaced, removed].forEach(map => map.forEach((val, key) => this.map.set(key, val)));
 
 		replaced.clear();
 		added.clear();

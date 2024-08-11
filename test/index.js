@@ -96,6 +96,20 @@ describe('Keybinder', () => {
 			assert.equal(flag, true);
 			done();
 		});
+
+		it('only recognizes keybindings in nested map', done => {
+			Keybinder.handleKeys(['T', 't'], keybindings, (type, kb) => {
+				assert.equal(type, 'unrecognized');
+			});
+
+			// resets map correctly
+			Keybinder.handleKeys(['d', 'd'], keybindings, (type, kb) => {
+				assert.equal(type, 'keybinding');
+				assert.equal(kb.action.name, 'delete-line');
+			});
+
+			done();
+		});
 	});
 
 	describe('instructions.read', () => {

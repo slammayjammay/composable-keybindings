@@ -4,6 +4,12 @@ export default new Map([
 	['b', 'back'],
 
 	['t', { name: 'test' }],
+	['T', {
+		name: 'Test',
+		keybindings: new Map([
+			['T', { name: 'doubleT' }]
+		])
+	}],
 	['ctrl+t', { name: 'ctrl+test' }],
 	['f', {
 		name: 'find',
