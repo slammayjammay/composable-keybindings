@@ -116,7 +116,7 @@ export default class Interpreter {
 	onBehavior = (action = this.getCurrentAction()) => {
 		this.status = STATUS.WAITING;
 		const { read, interpret, emit, done } = this;
-		action.behavior({ read, interpret, emit, done }, this.kb);
+		action.behavior({ kb: this.kb, read, interpret, emit, done }, this.kb);
 	}
 
 	read = (count, cb) => {

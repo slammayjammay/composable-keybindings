@@ -3,3 +3,4 @@ export { default as Interpreter } from './Interpreter.js';
 export { default as KeyReader } from './KeyReader.js';
 export { default as Keybinding } from './Keybinding.js';
 export { default as STATUS } from './status.js';
+export { default as getMapDiff } from './utils/get-map-diff.js';
