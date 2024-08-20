@@ -5,17 +5,17 @@ export default class KeyReader {
 		this.keys = [];
 	}
 
-	reset = (count = this.count) => {
+	reset(count = this.count) {
 		this.count = count;
 		this.keys = [];
 	}
 
-	handleKey = (key) => {
+	handleKey(key) {
 		this.keys.push(key);
 		this.keys.length === this.count && this.doneCb(this.keys);
 	}
 
-	destroy = () => {
+	destroy() {
 		this.count = this.doneCb = this.keys = null;
 	}
 }

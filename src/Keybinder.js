@@ -12,23 +12,23 @@ export default class Keybinder {
 		this.interpreter = new Interpreter(this.map, cb, options);
 	}
 
-	handleKey = (key) => {
+	handleKey(key) {
 		return this.interpreter.handleKey(key);
 	}
 
-	handleKeys = (keys) => {
+	handleKeys(keys) {
 		return this.interpreter.handleKeys(keys);
 	}
 
-	cancel = () => {
+	cancel() {
 		this.interpreter.cancel();
 	}
 
-	reset = () => {
+	reset() {
 		this.interpreter.reset();
 	}
 
-	destroy = () => {
+	destroy() {
 		this.interpreter.destroy();
 		this.interpreter = this.map = null;
 	}

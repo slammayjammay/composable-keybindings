@@ -29,29 +29,31 @@ export default class NodeListener {
 		});
 	}
 
-	start = () => {
+	start() {
 		!process.stdin.isRaw && process.stdin.setRawMode(true);
 		process.stdin.isPaused() && process.stdin.resume();
 		!this.listenerAdded && this.addListener();
 	}
 
-	end = () => {
+	end() {
 		this.removeListener();
 		process.stdin.isRaw && process.stdin.setRawMode(false);
 		!process.stdin.isPaused() && process.stdin.pause();
 	}
 
-	addListener = () => {
+	addListener() {
 		process.stdin.addListener('keypress', this.listener);
 		this.listenerAdded = true;
 	}
 
-	removeListener = () => {
+	removeListener() {
 		process.stdin.removeListener('keypress', this.listener);
 		this.listenerAdded = false;
 	}
 
-	listener = (char, key) => {
+	listener = (...args) => this._listener(...args)
+
+	_listener(char, key) {
 		if (key.sequence === '\u0003') {
 			process.kill(process.pid, 'SIGINT'); // ctrl+c
 		} else if (key.sequence === '\u001a') {
@@ -65,7 +67,7 @@ export default class NodeListener {
 		}
 	}
 
-	destroy = () => {
+	destroy() {
 		this.cb = this.options = null;
 	}
 };
